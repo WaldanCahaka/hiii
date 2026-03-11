@@ -1,0 +1,1964 @@
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local Camera = workspace.CurrentCamera
+local ProximityPromptService = game:GetService("ProximityPromptService")
+
+
+
+local LocalPlayer = Players.LocalPlayer
+
+-- =========================
+-- LOAD WINDUI
+-- =========================
+local cloneref = (cloneref or clonereference or function(instance) return instance end)
+local ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"))
+
+local WindUI
+
+do
+    local ok, result = pcall(function()
+        return require("./src/Init")
+    end)
+    
+    if ok then
+        WindUI = result
+    else 
+        if cloneref(game:GetService("RunService")):IsStudio() then
+            WindUI = require(cloneref(ReplicatedStorage:WaitForChild("WindUI"):WaitForChild("Init")))
+        else
+            WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
+        end
+    end
+end
+
+-- =========================
+-- WINDOW SETTINGS
+-- =========================
+local Window = WindUI:CreateWindow({
+    Title = "DEV HUB  |  Utility Panel",
+    Author = "by Developer",
+    Folder = "DevConfig",
+    Icon = "solar:code-bold",
+    Background = "rbxassetid://110217248149185", 
+    Theme = "Red", 
+    NewElements = true,
+    
+    OpenButton = {
+        Title = "Open Dev Hub UI",
+        CornerRadius = UDim.new(0.2,0),
+        StrokeThickness = 2,
+        Enabled = true,
+        Draggable = true,
+        Scale = 1,
+        Color = ColorSequence.new(Color3.fromHex("#EF4F1D"), Color3.fromHex("#C0392B"))
+    },
+    Topbar = {
+        Height = 44,
+        ButtonsType = "Mac",
+    },
+})
+
+-- */  Colors  /* --
+local Purple = Color3.fromHex("#7775F2")
+local Yellow = Color3.fromHex("#ECA201")
+local Green = Color3.fromHex("#10C550")
+local Grey = Color3.fromHex("#83889E")
+local Blue = Color3.fromHex("#257AF7")
+local Red = Color3.fromHex("#EF4F1D")
+
+-------------------------------------------------
+-- INFORMATION TAB (WALDAN EDITION)
+-------------------------------------------------
+local InfoSection = Window:Section({ Title = "System Info" })
+local InfoTab = InfoSection:Tab({
+    Title = "Information",
+    Icon = "solar:info-circle-bold",
+    IconColor = Grey,
+    IconShape = "Square",
+    Border = true,
+})
+
+InfoTab:Select() 
+
+-- Variables for Stats
+local StatsParagraph = InfoTab:Paragraph({ 
+    Title = "Live Diagnostics", 
+    Desc = "Calculating data...", 
+    Image = "solar:chart-square-bold", 
+    Color = "Green" 
+})
+
+-- Function Update Stats
+task.spawn(function()
+    while task.wait(1) do
+        local fps = math.floor(workspace:GetRealTimeReplicatedCount() > 0 and 60 or (1/task.wait())) -- Basic FPS Logic
+        -- Jika pakai executor modern, biasanya ada function khusus, tapi ini fallback universal:
+        local ping = math.floor(LocalPlayer:GetNetworkPing() * 1000)
+        local protocolStatus = "Active"
+        
+        StatsParagraph:SetDesc(string.format(
+            "FPS: %d\nPing: %d ms\nStatus: %s\nTime: %s", 
+            fps, ping, protocolStatus, os.date("%X")
+        ))
+    end
+end)
+
+InfoTab:Section({ Title = "Performance Control" })
+
+-- FPS CAP Slider
+InfoTab:Slider({
+    Title = "Set FPS Cap (CPU Saver)",
+    Step = 1,
+    Value = { Min = 15, Max = 240, Default = 60 },
+    Callback = function(v)
+        if setfpscap then
+            setfpscap(v)
+            WindUI:Notify({ Title = "System", Content = "FPS Cap set to: " .. v, Duration = 2 })
+        else
+            WindUI:Notify({ Title = "Error", Content = "Executor lo nggak support setfpscap.", Duration = 3 })
+        end
+    end
+})
+
+InfoTab:Section({ Title = "Project Identity" })
+
+InfoTab:Paragraph({ 
+    Title = "Executor Identity", 
+    Desc = "Detected: " .. (identifyexecutor and identifyexecutor() or "Unknown Entity"), 
+    Image = "solar:cpu-bold", 
+    Color = "Blue" 
+})
+
+InfoTab:Paragraph({ 
+    Title = "Origin", 
+    Desc = "Region: Indonesia\nArchitect: WzxX\nSystem: WALDAN V100M", 
+    Image = "solar:map-point-bold", 
+    Color = "Red" 
+})
+
+InfoTab:Button({
+    Title = "Destroy UI (Clean Exit)",
+    Callback = function()
+        Window:Destroy()
+        WindUI:Notify({ Title = "WALDAN", Content = "System Hibernated.", Duration = 3 })
+    end
+})
+
+
+-------------------------------------------------
+-- AIMBOT TAB (FULL BYPASS VERSION)
+-------------------------------------------------
+local AimSection = Window:Section({ Title = "Combat" })
+local AimTab = AimSection:Tab({
+    Title = "Aimbot",
+    Icon = "solar:target-bold",
+    IconColor = Red,
+    IconShape = "Square",
+    Border = true,
+})
+
+-- Variables
+local AimbotEnabled = false
+local AimAtPart = "HumanoidRootPart"
+local WallCheckEnabled = false
+local TargetNPCs = false
+local TeamCheckEnabled = false
+local HeadSizeEnabled = false
+local FOV_RADIUS = 50
+local Smoothness = 0.1 -- Bypass Variable: Semakin kecil semakin halus (Legit)
+
+local originalSizes = {}
+
+-- FOV Visual
+local DrawingCircle = Drawing.new("Circle")
+DrawingCircle.Position = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+DrawingCircle.Radius = FOV_RADIUS
+DrawingCircle.Color = Color3.fromRGB(255, 50, 50)
+DrawingCircle.Thickness = 2
+DrawingCircle.Transparency = 1
+DrawingCircle.NumSides = 100
+DrawingCircle.Filled = false
+DrawingCircle.Visible = false
+
+-- Fungsi Cari Target Terdekat
+local function getClosestTarget()
+    local Cam = workspace.CurrentCamera
+    local character = LocalPlayer.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then return nil end
+    
+    local localRoot = character.HumanoidRootPart
+    local nearestTarget = nil
+    local shortestDistance = math.huge
+
+    local function checkTarget(target)
+        if target and target:IsA("Model") and target:FindFirstChild("Humanoid") and target:FindFirstChild(AimAtPart) then
+            if target.Humanoid.Health <= 0 then return end
+            
+            local targetRoot = target[AimAtPart]
+            local screenPos, onScreen = Cam:WorldToViewportPoint(targetRoot.Position)
+            
+            if onScreen then
+                local dist2D = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(Cam.ViewportSize.X/2, Cam.ViewportSize.Y/2)).Magnitude
+                
+                if dist2D <= FOV_RADIUS then
+                    local distance = (targetRoot.Position - localRoot.Position).Magnitude
+                    if distance < shortestDistance then
+                        if WallCheckEnabled then
+                            local raycastParams = RaycastParams.new()
+                            raycastParams.FilterDescendantsInstances = {character}
+                            raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+                            local rayDirection = (targetRoot.Position - Cam.CFrame.Position).Unit * 1000
+                            local raycastResult = workspace:Raycast(Cam.CFrame.Position, rayDirection, raycastParams)
+
+                            if raycastResult and raycastResult.Instance:IsDescendantOf(target) then
+                                shortestDistance = distance
+                                nearestTarget = target
+                            end
+                        else
+                            shortestDistance = distance
+                            nearestTarget = target
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and (not TeamCheckEnabled or player.Team ~= LocalPlayer.Team) then
+            checkTarget(player.Character)
+        end
+    end
+
+    if TargetNPCs then
+        for _, npc in pairs(workspace:GetDescendants()) do
+            if npc:IsA("Model") and npc:FindFirstChild("Humanoid") and not Players:GetPlayerFromCharacter(npc) then
+                checkTarget(npc)
+            end
+        end
+    end
+
+    return nearestTarget
+end
+
+-- Fungsi Utama Aimbot dengan Smoothing Bypass
+local function aimAtTarget()
+    task.spawn(function()
+        while AimbotEnabled do
+            local closestTarget = getClosestTarget()
+            if closestTarget and closestTarget:FindFirstChild(AimAtPart) then
+                local targetRoot = closestTarget[AimAtPart]
+                
+                -- BYPASS LOGIC: Menggunakan Lerp agar gerakan kamera terlihat natural (tidak snap)
+                local targetCFrame = CFrame.new(Camera.CFrame.Position, targetRoot.Position)
+                Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, Smoothness)
+            end
+            RunService.RenderStepped:Wait()
+        end
+    end)
+end
+
+-- Fungsi Hitbox Expander
+local function updateHitboxes(state)
+    local function processCharacter(char)
+        if not char then return end
+        local head = char:FindFirstChild("Head")
+        if head and head:IsA("BasePart") then
+            if state then
+                if not originalSizes[head] then originalSizes[head] = head.Size end
+                head.Size = Vector3.new(5, 5, 5)
+                head.CanCollide = false
+            else
+                if originalSizes[head] then
+                    head.Size = originalSizes[head]
+                    head.CanCollide = true
+                    originalSizes[head] = nil
+                end
+            end
+        end
+    end
+
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer then processCharacter(plr.Character) end
+    end
+
+    if TargetNPCs then
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and not Players:GetPlayerFromCharacter(obj) then
+                processCharacter(obj)
+            end
+        end
+    end
+end
+
+-- FOV Update Loop
+RunService.RenderStepped:Connect(function()
+    DrawingCircle.Visible = AimbotEnabled
+    DrawingCircle.Position = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+    DrawingCircle.Radius = FOV_RADIUS
+end)
+
+-------------------------------------------------
+-- UI ELEMENTS
+-------------------------------------------------
+AimTab:Section({ Title = "Aimbot Main" })
+
+AimTab:Toggle({
+    Title = "Enable Aimbot",
+    Default = false,
+    Callback = function(Value)
+        AimbotEnabled = Value
+        if AimbotEnabled then aimAtTarget() end
+    end
+})
+
+AimTab:Slider({
+    Title = "Smoothing (Bypass)",
+    Step = 0.05,
+    Value = { Min = 0.05, Max = 1, Default = 0.1 },
+    Callback = function(v) Smoothness = v end
+})
+
+AimTab:Button({
+    Title = "Switch Aim Part (Head/Body)",
+    Callback = function()
+        if AimAtPart == "HumanoidRootPart" then AimAtPart = "Head" else AimAtPart = "HumanoidRootPart" end
+        WindUI:Notify({ Title = "Aim Part", Content = "Now aiming at: " .. AimAtPart, Duration = 3 })
+    end
+})
+
+AimTab:Slider({
+    Title = "FOV Radius",
+    Step = 10,
+    Value = { Min = 20, Max = 500, Default = 50 },
+    Callback = function(v) FOV_RADIUS = v end
+})
+
+AimTab:Toggle({
+    Title = "Wall Check",
+    Default = false,
+    Callback = function(Value) WallCheckEnabled = Value end
+})
+
+AimTab:Section({ Title = "Target Filter" })
+
+AimTab:Toggle({
+    Title = "Target NPCs",
+    Default = false,
+    Callback = function(Value) TargetNPCs = Value end
+})
+
+AimTab:Toggle({
+    Title = "Team Check",
+    Default = false,
+    Callback = function(Value) TeamCheckEnabled = Value end
+})
+
+AimTab:Section({ Title = "Hitbox Expander" })
+
+AimTab:Toggle({
+    Title = "Resize Heads",
+    Default = false,
+    Callback = function(Value)
+        HeadSizeEnabled = Value
+        updateHitboxes(Value)
+        task.spawn(function()
+            while HeadSizeEnabled do 
+                task.wait(2) 
+                if HeadSizeEnabled then updateHitboxes(true) end
+            end
+            updateHitboxes(false)
+        end)
+    end
+})
+
+-------------------------------------------------
+-- AUTHOR: WzxX | VERSION: 10.0 (SYNC FIXED)
+-------------------------------------------------
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+
+local MainSection = Window:Section({ Title = "Waldan Ghost Sync" })
+local MainTab = MainSection:Tab({
+    Title = "Ghost & Guard",
+    Icon = "solar:shield-check-bold",
+    IconColor = Color3.fromRGB(0, 255, 150),
+})
+
+-- State Variables
+local antiTpActive = false
+local noclipActive = false
+local ghostActive = false
+local antiGhostActive = false
+local ghostFireEnabled = true
+
+local lastSafeCFrame = nil
+local maxWalkSpeedBuffer = 3
+
+-- Memory Eraser & Ghost
+local deletedPart = nil
+local originalParent = nil
+local invisChair = nil
+
+-- =========================
+-- UTILITY FUNCTIONS
+-- =========================
+local function setTransparency(trans)
+    local char = LocalPlayer.Character
+    if not char then return end
+    for _, v in pairs(char:GetDescendants()) do
+        if v:IsA("BasePart") or v:IsA("Decal") then v.Transparency = trans end
+    end
+end
+
+local function restoreEraser()
+    if deletedPart and originalParent then
+        deletedPart.Parent = originalParent
+        deletedPart = nil
+        originalParent = nil
+    end
+end
+
+-- =========================
+-- SYSTEM 1: GHOST MODE (INVIS)
+-- =========================
+local function toggleGhost(state)
+    ghostActive = state
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    
+    if state then
+        if hrp then
+            local savedpos = hrp.CFrame
+            invisChair = Instance.new('Seat', workspace)
+            invisChair.Anchored = false
+            invisChair.CanCollide = false
+            invisChair.Name = 'WaldanGhostSeat'
+            invisChair.Transparency = 1
+            invisChair.CFrame = savedpos
+            
+            local Weld = Instance.new("Weld", invisChair)
+            Weld.Part0 = invisChair
+            Weld.Part1 = char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
+            
+            setTransparency(0.5)
+            WindUI:Notify({ Title = "WALDAN", Content = "Ghost Mode Active: Anti-TP Paused." })
+        end
+    else
+        if invisChair then
+            invisChair:Destroy()
+            invisChair = nil
+            setTransparency(0)
+            -- Paksa balik ke posisi terakhir biar gak stuck
+            task.wait(0.1)
+            if hrp then lastSafeCFrame = hrp.CFrame end
+            WindUI:Notify({ Title = "WALDAN", Content = "Ghost Mode Off: Anti-TP Resumed." })
+        end
+    end
+end
+
+-- =========================
+-- SYSTEM 2: ANTI-TP (WITH GHOST SYNC)
+-- =========================
+RunService.PostSimulation:Connect(function()
+    -- JIKA GHOST MODE AKTIF, ANTI-TP DIMATIKAN SEMENTARA BIAR GAK STUCK
+    if not antiTpActive or ghostActive then return end
+    
+    local char = LocalPlayer.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    
+    if root then
+        if not lastSafeCFrame then lastSafeCFrame = root.CFrame return end
+        local distanceMoved = (root.Position - lastSafeCFrame.Position).Magnitude
+        
+        if distanceMoved > maxWalkSpeedBuffer then
+            root.CFrame = lastSafeCFrame
+            root.AssemblyLinearVelocity = Vector3.new(0,0,0)
+        else
+            lastSafeCFrame = root.CFrame
+        end
+    end
+end)
+
+-- =========================
+-- SYSTEM 3: ANTI-GHOSTMODE & ERASER
+-- =========================
+RunService.Heartbeat:Connect(function()
+    local char = LocalPlayer.Character
+    if not char then return end
+
+    -- ANTI-GHOSTMODE: Paksa padat kalau fitur ini ON
+    if antiGhostActive and not ghostActive then
+        for _, v in pairs(char:GetDescendants()) do
+            if v:IsA("BasePart") then
+                if v.Transparency > 0 then v.Transparency = 0 end
+                if v.Name == "HumanoidRootPart" then v.CanCollide = true end
+            end
+        end
+    end
+
+    -- ERASER NOCLIP
+    if noclipActive then
+        local cam = workspace.CurrentCamera
+        local lookDir = cam.CFrame.LookVector
+        if lookDir.Y > -0.5 then
+            local rayParams = RaycastParams.new()
+            rayParams.FilterDescendantsInstances = {char}
+            local result = workspace:Raycast(cam.CFrame.Position, lookDir * 18, rayParams)
+            
+            if result and result.Instance:IsA("BasePart") then
+                local target = result.Instance
+                if target.Name ~= "Baseplate" and not target:IsA("Terrain") then
+                    if deletedPart ~= target then
+                        restoreEraser()
+                        originalParent = target.Parent
+                        deletedPart = target
+                        target.Parent = nil
+                    end
+                end
+            elseif deletedPart and (char.HumanoidRootPart.Position - deletedPart.Position).Magnitude > 22 then
+                restoreEraser()
+            end
+        else restoreEraser() end
+    else restoreEraser() end
+end)
+
+-- =========================
+-- UI INTEGRATION
+-- =========================
+
+MainTab:Toggle({ 
+    Title = "Ghost Mode (Invis)", 
+    Default = false,
+    Callback = function(s) toggleGhost(s) end 
+})
+
+MainTab:Toggle({ 
+    Title = "Anti-Teleport (Safe Move)", 
+    Default = false,
+    Callback = function(s) 
+        antiTpActive = s 
+        if s and LocalPlayer.Character then lastSafeCFrame = LocalPlayer.Character.HumanoidRootPart.CFrame end
+    end 
+})
+
+MainTab:Toggle({ 
+    Title = "Anti-Ghostmode (Force Real)", 
+    Default = false,
+    Callback = function(s) antiGhostActive = s end 
+})
+
+MainTab:Toggle({ 
+    Title = "Eraser Noclip (Delete Forward)", 
+    Default = false,
+    Callback = function(s) noclipActive = s if not s then restoreEraser() end end 
+})
+
+MainTab:Slider({ 
+    Title = "Anti-TP Sensitivity", 
+    Step = 0.5, Value = { Min = 1, Max = 10, Default = 3 }, 
+    Callback = function(v) maxWalkSpeedBuffer = v end 
+})
+
+-- Reset on Spawn
+LocalPlayer.CharacterAdded:Connect(function()
+    ghostActive = false
+    invisChair = nil
+    lastSafeCFrame = nil
+    restoreEraser()
+end)
+
+WindUI:Notify({ Title = "WALDAN V10.0", Content = "All Modules Synced & Stable.", Duration = 4 })
+
+
+-------------------------------------------------
+-- MOVEMENT TAB
+-------------------------------------------------
+local MoveSection = Window:Section({ Title = "Movement" })
+local MoveTab = MoveSection:Tab({
+    Title = "Movement",
+    Icon = "solar:running-round-bold",
+    IconColor = Blue,
+    IconShape = "Square",
+    Border = true,
+})
+
+local cframeEnabled = false
+local speed = 5
+local noclipEnabled = false
+local noclipConnection = nil
+local infJumpEnabled = false
+local jumpConnection = nil
+
+-- =========================
+-- MASTER BYPASS SYSTEM (NOCLIP + SPEED + ANTITELEPORT)
+-- =========================
+local bypassConnection = nil
+local noclipBypassActive = false
+local speedBypassActive = false
+local customWalkspeed = 16
+
+local function updateBypassLogic()
+    -- Jika tidak ada fitur yang aktif, putuskan koneksi
+    if not noclipBypassActive and not speedBypassActive then
+        if bypassConnection then
+            bypassConnection:Disconnect()
+            bypassConnection = nil
+        end
+        -- Reset Normal State
+        local char = LocalPlayer.Character
+        if char then
+            for _, part in pairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then part.CanCollide = true end
+            end
+            local hum = char:FindFirstChild("Humanoid")
+            if hum then hum.WalkSpeed = 16 end
+        end
+        return
+    end
+
+    -- Jika sudah ada koneksi, jangan buat baru (mencegah double loop)
+    if bypassConnection then return end
+
+    bypassConnection = RunService.Heartbeat:Connect(function()
+        local char = LocalPlayer.Character
+        if not char then return end
+        
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        local hum = char:FindFirstChild("Humanoid")
+        
+        if not hrp or not hum then return end
+
+        -- 1. ANTI-TELEPORT / RESYNC FIX
+        -- Mencegah server memaksa karakter kembali ke posisi sebelumnya
+        -- Dengan sedikit mengubah posisi Y atau Velocity saat nembus tembok
+        if noclipBypassActive then
+            -- Logic Noclip (dengan cek tambahan agar tidak error)
+            for _, part in pairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+            
+            -- Fix Teleport: Mencegah karakter "stuck" di dalam part
+            -- Memberikan sedikit dorongan ke atas jika jatuh terlalu cepat atau menembus
+            if hrp.Velocity.Y < -100 then
+                hrp.Velocity = Vector3.new(hrp.Velocity.X, -50, hrp.Velocity.Z)
+            end
+        end
+
+        -- 2. WALKSPEED BYPASS
+        if speedBypassActive then
+            -- Logika Smart Speed:
+            -- Jika diam (idle), kunci speed 16 (aman dari anti-cheat idle check).
+            -- Jika bergerak (move), paksa speed custom.
+            
+            if hum.MoveDirection.Magnitude > 0 then
+                if hum.WalkSpeed ~= customWalkspeed then
+                    hum.WalkSpeed = customWalkspeed
+                end
+            else
+                -- Saat diam, pastikan 16
+                if hum.WalkSpeed ~= 16 then
+                    hum.WalkSpeed = 16
+                end
+            end
+        end
+    end)
+end
+
+-- UI: WalkSpeed Input & Slider
+MoveTab:Input({ 
+    Title = "Set WalkSpeed Value", 
+    Placeholder = "Contoh: 50, 100", 
+    Callback = function(txt) 
+        local num = tonumber(txt)
+        if num and num > 0 then 
+            customWalkspeed = num
+            WindUI:Notify({ Title = "WalkSpeed", Content = "Speed set to: " .. num, Duration = 3 })
+        end 
+    end 
+})
+
+MoveTab:Slider({ 
+    Title = "WalkSpeed Slider", 
+    Step = 1, 
+    Value = { Min = 16, Max = 200, Default = 16 }, 
+    Callback = function(v) 
+        customWalkspeed = v 
+    end 
+})
+
+-- UI: Toggle WalkSpeed
+MoveTab:Toggle({ 
+    Title = "WalkSpeed Bypass (Anti-Detect)", 
+    Default = false,
+    Callback = function(state) 
+        speedBypassActive = state
+        updateBypassLogic()
+        WindUI:Notify({ Title = "WalkSpeed", Content = state and "Bypass Activated" or "Restored to Normal", Duration = 3 })
+    end 
+})
+
+MoveTab:Space()
+
+-- UI: Toggle Noclip
+MoveTab:Toggle({ 
+    Title = "Noclip Bypass (Anti-Teleport)", 
+    Default = false,
+    Callback = function(state) 
+        noclipBypassActive = state
+        updateBypassLogic()
+        WindUI:Notify({ Title = "Noclip", Content = state and "Noclip Activated" or "Restored to Normal", Duration = 3 })
+    end 
+})
+
+MoveTab:Toggle({ 
+    Title = "Noclip (Standard - Less Safe)", 
+    Callback = function(state) 
+        noclipEnabled = state; 
+        toggleNoclip(state) 
+    end 
+})
+
+MoveTab:Space()
+
+-- =========================
+-- FLOAT SYSTEM
+-- =========================
+local floatGuiInstance = nil 
+local floatBlock = nil
+local bodyPos = nil
+local floatActive = false
+local floatUpdateConn = nil
+local isDragging = false
+local dragInput = nil
+local dragStart = nil
+local startPos = nil
+local floatToggleRef = nil 
+
+local function cleanFloat()
+    if floatUpdateConn then floatUpdateConn:Disconnect(); floatUpdateConn = nil end
+    if bodyPos then bodyPos:Destroy(); bodyPos = nil end
+    if floatBlock then floatBlock:Destroy(); floatBlock = nil end
+    floatActive = false
+    if floatGuiInstance and floatGuiInstance:FindFirstChild("DragFrame", true) then
+        local btn = floatGuiInstance.DragFrame:FindFirstChild("FloatButton", true)
+        if btn then btn.Text = "Float: OFF" end
+    end
+    if floatToggleRef then floatToggleRef:SetState(false) end
+end
+
+local function startFloat()
+    local character = LocalPlayer.Character
+    if not character then return false end
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    local humanoid = character:FindFirstChild("Humanoid")
+    if not rootPart or not humanoid then return false end
+    floatActive = true
+    floatBlock = Instance.new("Part")
+    floatBlock.Size = Vector3.new(6, 1, 6)
+    floatBlock.Anchored = true
+    floatBlock.CanCollide = true
+    floatBlock.Transparency = 0.3
+    floatBlock.Material = Enum.Material.Neon
+    floatBlock.BrickColor = BrickColor.new("Bright green")
+    floatBlock.Parent = workspace
+    bodyPos = Instance.new("BodyPosition")
+    bodyPos.MaxForce = Vector3.new(0, 0, 0) 
+    bodyPos.P = 10000
+    bodyPos.D = 1000
+    bodyPos.Parent = rootPart
+    floatUpdateConn = RunService.Heartbeat:Connect(function()
+        if not (floatBlock and rootPart and bodyPos and floatActive) then return end
+        if not rootPart:IsDescendantOf(workspace) then cleanFloat(); return end
+        local isJumping = humanoid:GetState() == Enum.HumanoidStateType.Jumping or humanoid:GetState() == Enum.HumanoidStateType.Freefall
+        if isJumping then
+            bodyPos.MaxForce = Vector3.new(0, 0, 0) 
+        else
+            bodyPos.Position = rootPart.Position
+            bodyPos.MaxForce = Vector3.new(0, math.huge, 0) 
+        end
+        floatBlock.CFrame = CFrame.new(rootPart.Position - Vector3.new(0, 3.5, 0))
+    end)
+    return true
+end
+
+local function toggleFloatLogic(state)
+    if state == nil then state = not floatActive end
+    if state then
+        if startFloat() then
+            if floatGuiInstance and floatGuiInstance:FindFirstChild("DragFrame", true) then
+                local btn = floatGuiInstance.DragFrame:FindFirstChild("FloatButton", true)
+                if btn then btn.Text = "Float: ON" end
+            end
+            if floatToggleRef then floatToggleRef:SetState(true) end
+        else
+            cleanFloat()
+        end
+    else
+        cleanFloat() 
+    end
+end
+
+LocalPlayer.CharacterAdded:Connect(function(char) cleanFloat() end)
+
+local function createFloatGui()
+    if floatGuiInstance then return end 
+    local ScreenGui = Instance.new("ScreenGui")
+    local DragFrame = Instance.new("Frame")
+    local FloatButton = Instance.new("TextButton")
+    ScreenGui.Name = "FloatGui"
+    ScreenGui.ResetOnSpawn = false
+    ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    DragFrame.Name = "DragFrame"
+    DragFrame.Parent = ScreenGui
+    DragFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    DragFrame.BorderSizePixel = 0
+    DragFrame.Size = UDim2.new(0, 200, 0, 80)
+    DragFrame.Position = UDim2.new(0.4, 0, 0.4, 0)
+    DragFrame.ZIndex = 1
+    DragFrame.Active = true 
+    FloatButton.Name = "FloatButton"
+    FloatButton.Parent = DragFrame
+    FloatButton.BackgroundColor3 = Color3.fromRGB(100, 100, 255)
+    FloatButton.Size = UDim2.new(1, 0, 0.5, 0)
+    FloatButton.Position = UDim2.new(0, 0, 0, 0)
+    FloatButton.Font = Enum.Font.SourceSans
+    FloatButton.Text = "Float: OFF"
+    FloatButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    FloatButton.TextSize = 20
+    FloatButton.ZIndex = 2
+    FloatButton.Active = true
+    floatGuiInstance = ScreenGui
+    DragFrame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            isDragging = true
+            dragStart = input.Position
+            startPos = DragFrame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then isDragging = false end
+            end)
+        end
+    end)
+    DragFrame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and isDragging then
+            local delta = input.Position - dragStart
+            DragFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    FloatButton.MouseButton1Click:Connect(function() toggleFloatLogic(nil) end)
+end
+
+floatToggleRef = MoveTab:Toggle({ 
+    Title = "Show Float GUI & Activate", 
+    Default = false,
+    Callback = function(state) 
+        if state then
+            createFloatGui() 
+            if floatGuiInstance then floatGuiInstance.Enabled = true end
+            toggleFloatLogic(true) 
+        else
+            if floatGuiInstance then floatGuiInstance.Enabled = false end
+            toggleFloatLogic(false) 
+        end
+    end 
+})
+
+MoveTab:Space()
+
+-- =========================
+-- OTHER MOVEMENT TOGGLES
+-- =========================
+MoveTab:Toggle({
+    Title = "Infinite Jump",
+    Callback = function(state)
+        infJumpEnabled = state
+        if jumpConnection then jumpConnection:Disconnect(); jumpConnection = nil end
+        if state then
+            jumpConnection = UserInputService.JumpRequest:Connect(function()
+                local char = LocalPlayer.Character
+                if char then local hum = char:FindFirstChild("Humanoid"); if hum then hum:ChangeState("Jumping") end end
+            end)
+        end
+    end
+})
+
+MoveTab:Toggle({ Title = "Enable CFrame Speed", Callback = function(state) cframeEnabled = state end })
+MoveTab:Slider({ Title = "CFrame Speed (Stud/sec)", Step = 1, Value = { Min = 1, Max = 200, Default = 5 }, Callback = function(v) speed = v end })
+MoveTab:Input({ Title = "Manual CFrame Speed", Placeholder = "Enter number", Callback = function(txt) local num = tonumber(txt) if num and num > 0 then speed = num end end })
+
+RunService.RenderStepped:Connect(function(dt)
+    if not cframeEnabled then return end
+    local char = LocalPlayer.Character if not char then return end
+    local hum = char:FindFirstChild("Humanoid") local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hum or not hrp then return end
+    local dir = hum.MoveDirection
+    if dir.Magnitude > 0 then hrp.CFrame = hrp.CFrame + (dir * speed * dt) end
+end)
+
+-------------------------------------------------
+-- VISUAL TAB (FIXED ESP RESPAWN & LEAVE)
+-------------------------------------------------
+local VisualSection = Window:Section({ Title = "Visuals" })
+local VisualTab = VisualSection:Tab({ Title = "Visual Debug", Icon = "solar:eye-bold", IconColor = Green, IconShape = "Square", Border = true })
+
+local function newDrawing(type, props) local drawing = Drawing.new(type) for prop, val in pairs(props) do drawing[prop] = val end return drawing end
+
+local ESP = { Enabled = false, ShowName = false, ShowDistance = false, ShowBox = false, ShowTracer = false, ShowHealth = false, ShowSkeleton = false, Objects = {} }
+local bodyConnections = { R15 = {{"Head", "UpperTorso"}, {"UpperTorso", "LowerTorso"}, {"LowerTorso", "LeftUpperLeg"}, {"LowerTorso", "RightUpperLeg"}, {"LeftUpperLeg", "LeftLowerLeg"}, {"LeftLowerLeg", "LeftFoot"}, {"RightUpperLeg", "RightLowerLeg"}, {"RightLowerLeg", "RightFoot"}, {"UpperTorso", "LeftUpperArm"}, {"UpperTorso", "RightUpperArm"}, {"LeftUpperArm", "LeftLowerArm"}, {"LeftLowerArm", "LeftHand"}, {"RightUpperArm", "RightLowerArm"}, {"RightLowerArm", "RightHand"}}, R6 = {{"Head", "Torso"}, {"Torso", "Left Arm"}, {"Torso", "Right Arm"}, {"Torso", "Left Leg"}, {"Torso", "Right Leg"}} }
+
+-- Function to create ESP objects for a player
+local function setupESP(plr)
+    if plr == LocalPlayer then return end
+    
+    -- Clean up existing objects first
+    local existing = ESP.Objects[plr]
+    if existing then
+        for _, d in pairs({existing.Box, existing.Name, existing.Distance, existing.Tracer}) do if d then d:Remove() end end
+        if existing.HealthBar then for _, d in pairs(existing.HealthBar) do if d then d:Remove() end end end
+        for _, l in pairs(existing.Skeleton) do if l then l:Remove() end end
+    end
+
+    ESP.Objects[plr] = {
+        Box = newDrawing("Square", { Thickness = 2.5, Color = Color3.new(1, 1, 1), Filled = false }),
+        Name = newDrawing("Text", { Size = 13, Center = true, Outline = true, Color = Color3.new(1, 1, 1) }),
+        Distance = newDrawing("Text", { Size = 13, Center = true, Outline = true, Color = Color3.new(1, 1, 1) }),
+        Tracer = newDrawing("Line", { Thickness = 1, Color = Color3.new(1, 1, 1) }),
+        HealthBar = {
+            Outline = newDrawing("Square", { Color = Color3.new(0, 0, 0), Filled = true }),
+            Health = newDrawing("Square", { Color = Color3.new(0, 1, 0), Filled = true })
+        },
+        Skeleton = {}
+    }
+end
+
+-- Function to remove ESP objects
+local function removeESP(plr)
+    local entries = ESP.Objects[plr]
+    if entries then
+        for _, d in pairs({entries.Box, entries.Name, entries.Distance, entries.Tracer}) do if d then d:Remove() end end
+        if entries.HealthBar then for _, d in pairs(entries.HealthBar) do if d then d:Remove() end end end
+        for _, l in pairs(entries.Skeleton) do if l then l:Remove() end end
+        ESP.Objects[plr] = nil
+    end
+end
+
+-- Main Render Loop
+RunService.RenderStepped:Connect(function()
+    local lChar = LocalPlayer.Character
+    local lHRP = lChar and lChar:FindFirstChild("HumanoidRootPart")
+    
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer then
+            local entries = ESP.Objects[plr]
+            
+            -- Conditions to hide ESP (Disabled, No Char, No HRP, No Humanoid)
+            if not ESP.Enabled or not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") or not plr.Character:FindFirstChild("Humanoid") then
+                if entries then
+                    -- Hide all drawings efficiently
+                    for _, d in pairs({entries.Box, entries.Name, entries.Distance, entries.Tracer}) do if d then d.Visible = false end end
+                    if entries.HealthBar then for _, d in pairs(entries.HealthBar) do if d then d.Visible = false end end end
+                    for _, l in pairs(entries.Skeleton) do l.Visible = false end
+                end
+            else
+                local char = plr.Character
+                local hrp = char.HumanoidRootPart
+                local hum = char.Humanoid
+                local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+                
+                if onScreen and entries then
+                    local dist = (lHRP.Position - hrp.Position).Magnitude
+                    local scale = 1 / (pos.Z * math.tan(math.rad(Camera.FieldOfView / 2)) * 2) * 100
+                    local width, height = math.floor(6 * scale), math.floor(8 * scale)
+                    
+                    entries.Box.Visible = ESP.ShowBox; entries.Box.Size = Vector2.new(width, height); entries.Box.Position = Vector2.new(pos.X - width/2, pos.Y - height/2)
+                    entries.Name.Visible = ESP.ShowName; entries.Name.Text = plr.Name; entries.Name.Position = Vector2.new(pos.X, pos.Y - height/2 - 15)
+                    entries.Distance.Visible = ESP.ShowDistance; entries.Distance.Text = string.format("[%d M]", math.floor(dist)); entries.Distance.Position = Vector2.new(pos.X, pos.Y + height/2 + 2)
+                    entries.Tracer.Visible = ESP.ShowTracer; entries.Tracer.From = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y); entries.Tracer.To = Vector2.new(pos.X, pos.Y + height/2)
+                    
+                    if ESP.ShowHealth then
+                        local hpPercent = math.clamp(hum.Health/hum.MaxHealth, 0, 1)
+                        entries.HealthBar.Outline.Visible = true; entries.HealthBar.Outline.Size = Vector2.new(8, height); entries.HealthBar.Outline.Position = Vector2.new(pos.X - width/2 - 12, pos.Y - height/2)
+                        entries.HealthBar.Health.Visible = true; entries.HealthBar.Health.Color = Color3.fromRGB(255 * (1 - hpPercent), 255 * hpPercent, 0); entries.HealthBar.Health.Size = Vector2.new(6, height * hpPercent); entries.HealthBar.Health.Position = Vector2.new(pos.X - width/2 - 11, pos.Y + height/2 - (height * hpPercent))
+                    else
+                        entries.HealthBar.Outline.Visible = false; entries.HealthBar.Health.Visible = false
+                    end
+                    
+                    if ESP.ShowSkeleton then
+                        local rigType = hum.RigType == Enum.HumanoidRigType.R15 and "R15" or "R6"
+                        for _, conn in ipairs(bodyConnections[rigType] or {}) do
+                            local pA, pB = char:FindFirstChild(conn[1]), char:FindFirstChild(conn[2])
+                            if pA and pB then
+                                local sA, vA = Camera:WorldToViewportPoint(pA.Position); local sB, vB = Camera:WorldToViewportPoint(pB.Position)
+                                local k = conn[1].."-"..conn[2]
+                                if not entries.Skeleton[k] then entries.Skeleton[k] = newDrawing("Line", { Thickness = 2, Color = Color3.new(1, 1, 1) }) end
+                                if vA and vB then entries.Skeleton[k].From = Vector2.new(sA.X, sA.Y); entries.Skeleton[k].To = Vector2.new(sB.X, sB.Y); entries.Skeleton[k].Visible = true else entries.Skeleton[k].Visible = false end
+                            end
+                        end
+                    else
+                        for _, l in pairs(entries.Skeleton) do l.Visible = false end
+                    end
+                elseif entries then
+                    -- Off screen handling
+                    for _, d in pairs({entries.Box, entries.Name, entries.Distance, entries.Tracer}) do if d then d.Visible = false end end
+                    if entries.HealthBar then for _, d in pairs(entries.HealthBar) do if d then d.Visible = false end end end
+                    for _, l in pairs(entries.Skeleton) do l.Visible = false end
+                end
+            end
+        end
+    end
+end)
+
+-- Event Handlers for Player Joining/Leaving/Spawning
+Players.PlayerAdded:Connect(function(plr)
+    setupESP(plr)
+    -- Important: Re-setup ESP when character loads (fixes respawn issue)
+    plr.CharacterAdded:Connect(function()
+        -- Small wait to ensure HumanoidRootPart exists
+        task.wait(0.5)
+        if not ESP.Objects[plr] then setupESP(plr) end
+    end)
+end)
+
+Players.PlayerRemoving:Connect(removeESP)
+
+-- Initial Load for players already in game
+for _, plr in pairs(Players:GetPlayers()) do
+    setupESP(plr)
+    plr.CharacterAdded:Connect(function()
+        task.wait(0.5)
+        if not ESP.Objects[plr] then setupESP(plr) end
+    end)
+end
+
+VisualTab:Toggle({ Title = "Enable Player ESP", Callback = function(v) ESP.Enabled = v end })
+VisualTab:Toggle({ Title = "Show Name", Callback = function(v) ESP.ShowName = v end })
+VisualTab:Toggle({ Title = "Show Distance", Callback = function(v) ESP.ShowDistance = v end })
+VisualTab:Toggle({ Title = "Show Box", Callback = function(v) ESP.ShowBox = v end })
+VisualTab:Toggle({ Title = "Show Tracer", Callback = function(v) ESP.ShowTracer = v end })
+VisualTab:Toggle({ Title = "Show Health", Callback = function(v) ESP.ShowHealth = v end })
+VisualTab:Toggle({ Title = "Show Skeleton", Callback = function(v) ESP.ShowSkeleton = v end })
+
+VisualTab:Paragraph({ Title = "Part Mover Scanner", Desc = "Scan part bergerak.", Image = "radar", Color = "Blue" })
+local selectedPartNames = {} local partHighlights = {} local partDrawings = {} local isPartEspEnabled = false
+local function clearPartESP() for _, h in pairs(partHighlights) do if h then h:Destroy() end end partHighlights = {} for _, d in pairs(partDrawings) do if d.Line then d.Line:Remove() end if d.Text then d.Text:Remove() end end partDrawings = {} end
+local PartDropdown = VisualTab:Dropdown({ Title = "Target Part (Multi)", Values = { "Empty" }, Multi = true, Callback = function(values) selectedPartNames = values or {} end })
+local function scanMovingParts() local scannedList = {} local charIgnoreList = {} for _, plr in pairs(Players:GetPlayers()) do if plr.Character then for _, p in pairs(plr.Character:GetDescendants()) do if p:IsA("BasePart") then charIgnoreList[p] = true end end end end for _, obj in pairs(workspace:GetDescendants()) do if obj:IsA("BasePart") and not charIgnoreList[obj] then local isMoving = false if not obj.Anchored then if obj.Size.Magnitude > 2 then isMoving = true end end for _, child in pairs(obj:GetChildren()) do if child:IsA("Constraint") or child:IsA("BodyMover") or child:IsA("Motor6D") then isMoving = true break end end if isMoving then table.insert(scannedList, obj.Name) end end end if #scannedList > 0 then PartDropdown:Refresh(scannedList) WindUI:Notify({ Title = "Scan Complete", Content = string.format("Found %d moving parts.", #scannedList), Duration = 5 }) else PartDropdown:Refresh({"No Results"}) WindUI:Notify({ Title = "Scan Complete", Content = "No moving parts found.", Duration = 5 }) end end
+VisualTab:Button({ Title = "Scan Moving Parts", Callback = scanMovingParts })
+VisualTab:Toggle({ Title = "Enable ESP Target Part", Callback = function(state) isPartEspEnabled = state if not state then clearPartESP() end end })
+RunService.RenderStepped:Connect(function() if isPartEspEnabled and #selectedPartNames > 0 then local lChar = LocalPlayer.Character local lHRP = lChar and lChar:FindFirstChild("HumanoidRootPart") for _, obj in pairs(workspace:GetDescendants()) do if obj:IsA("BasePart") then local isTarget = table.find(selectedPartNames, obj.Name) if isTarget then if not partHighlights[obj] then local h = Instance.new("Highlight") h.Name = "ESPPartHighlight" h.FillTransparency = 0.5 h.OutlineColor = Color3.fromRGB(255, 0, 255) h.FillColor = Color3.fromRGB(255, 255, 0) h.OutlineTransparency = 0 h.Adornee = obj h.Parent = obj partHighlights[obj] = h end if partHighlights[obj] then partHighlights[obj].Enabled = true end local pos, onScreen = Camera:WorldToViewportPoint(obj.Position) if onScreen then if not partDrawings[obj] then partDrawings[obj] = { Line = newDrawing("Line", { Thickness = 2, Color = Color3.fromRGB(255, 0, 255) }), Text = newDrawing("Text", { Size = 14, Center = true, Outline = true, Color = Color3.fromRGB(255, 255, 255) }) } end local d = partDrawings[obj] local dist = lHRP and (lHRP.Position - obj.Position).Magnitude or 0 d.Line.Visible = true d.Line.From = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2) d.Line.To = Vector2.new(pos.X, pos.Y) d.Text.Visible = true d.Text.Text = string.format("%s [%d M]", obj.Name, math.floor(dist)) d.Text.Position = Vector2.new(pos.X, pos.Y - 15) else if partDrawings[obj] then partDrawings[obj].Line.Visible = false partDrawings[obj].Text.Visible = false end end else if partHighlights[obj] then partHighlights[obj].Enabled = false partHighlights[obj]:Destroy() partHighlights[obj] = nil end if partDrawings[obj] then partDrawings[obj].Line.Visible = false partDrawings[obj].Text.Visible = false partDrawings[obj].Line:Remove() partDrawings[obj].Text:Remove() partDrawings[obj] = nil end end end end end end)
+
+VisualTab:Space()
+VisualTab:Paragraph({ Title = "Target V2", Desc = "Cari nama part/model manual.", Image = "search", Color = "Green" })
+local searchInputValue = "" local selectedV2Names = {} local isV2EspEnabled = false local v2Highlights = {} local v2Drawings = {}
+VisualTab:Input({ Title = "Nama Part (Search)", Placeholder = "Contoh: Handle, Coin, Head", Callback = function(txt) searchInputValue = txt end })
+local V2Dropdown = VisualTab:Dropdown({ Title = "Hasil Pencarian V2", Values = { "Empty" }, Multi = true, Callback = function(values) selectedV2Names = values or {} end })
+local function scanByName() local foundList = {} local uniqueNames = {} if searchInputValue == "" then WindUI:Notify({ Title = "Info", Content = "Masukkan nama part dulu!", Duration = 3 }) return end local lowerSearch = string.lower(searchInputValue) for _, obj in pairs(workspace:GetDescendants()) do if obj:IsA("BasePart") or obj:IsA("Model") then local objName = obj.Name if string.find(string.lower(objName), lowerSearch, 1, true) then uniqueNames[objName] = true end end end for name, _ in pairs(uniqueNames) do table.insert(foundList, name) end if #foundList > 0 then V2Dropdown:Refresh(foundList) WindUI:Notify({ Title = "Search V2 Complete", Content = string.format("Found %d unique objects.", #foundList), Duration = 5 }) else V2Dropdown:Refresh({"No Results"}) WindUI:Notify({ Title = "Search V2 Complete", Content = "Tidak ketemu.", Duration = 5 }) end end
+VisualTab:Button({ Title = "Scan Nama Part / Model", Callback = scanByName })
+VisualTab:Toggle({ Title = "Enable ESP Target V2", Callback = function(state) isV2EspEnabled = state if not state then for _, h in pairs(v2Highlights) do if h then h:Destroy() end end v2Highlights = {} for _, d in pairs(v2Drawings) do if d.Line then d.Line:Remove() end if d.Text then d.Text:Remove() end end v2Drawings = {} end end })
+RunService.RenderStepped:Connect(function() if isV2EspEnabled and #selectedV2Names > 0 then local lChar = LocalPlayer.Character local lHRP = lChar and lChar:FindFirstChild("HumanoidRootPart") for _, obj in pairs(workspace:GetDescendants()) do local isPart = obj:IsA("BasePart") local isModel = obj:IsA("Model") if isPart or isModel then local isTarget = table.find(selectedV2Names, obj.Name) if isTarget then local pos3D = isModel and obj:GetPivot().Position or obj.Position local pos, onScreen = Camera:WorldToViewportPoint(pos3D) if not v2Highlights[obj] then local h = Instance.new("Highlight") h.Name = "ESPV2" h.FillTransparency = 0.7 h.OutlineColor = Color3.fromRGB(0, 255, 255) h.FillColor = Color3.fromRGB(0, 255, 200) h.OutlineTransparency = 0 h.Adornee = obj h.Parent = obj v2Highlights[obj] = h end if v2Highlights[obj] then v2Highlights[obj].Enabled = true end if onScreen then if not v2Drawings[obj] then v2Drawings[obj] = { Line = newDrawing("Line", { Thickness = 2, Color = Color3.fromRGB(0, 255, 255) }), Text = newDrawing("Text", { Size = 14, Center = true, Outline = true, Color = Color3.fromRGB(255, 255, 255) }) } end local d = v2Drawings[obj] local dist = lHRP and (lHRP.Position - pos3D).Magnitude or 0 d.Line.Visible = true d.Line.From = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2) d.Line.To = Vector2.new(pos.X, pos.Y) d.Text.Visible = true d.Text.Text = string.format("%s [%d M]", obj.Name, math.floor(dist)) d.Text.Position = Vector2.new(pos.X, pos.Y - 15) else if v2Drawings[obj] then v2Drawings[obj].Line.Visible = false v2Drawings[obj].Text.Visible = false end end else if v2Highlights[obj] then v2Highlights[obj].Enabled = false v2Highlights[obj]:Destroy() v2Highlights[obj] = nil end if v2Drawings[obj] then v2Drawings[obj].Line.Visible = false v2Drawings[obj].Text.Visible = false v2Drawings[obj].Line:Remove() v2Drawings[obj].Text:Remove() v2Drawings[obj] = nil end end end end end end)
+
+-------------------------------------------------
+-- WORLD TOOLS TAB
+-------------------------------------------------
+local WorldSection = Window:Section({ Title = "World Tools" })
+local WorldTab = WorldSection:Tab({ Title = "World Tools", Icon = "solar:ghost-bold", IconColor = Yellow, IconShape = "Square", Border = true })
+
+WorldTab:Paragraph({ Title = "Visibility Mode", Desc = "Sembunyikan Part (ON) / Kembalikan (OFF).", Image = "eye-off", Color = "Red" })
+
+local delSearchInput = ""
+local selectedDelNames = {}
+local isDeleteActive = false
+
+-- Buat Folder Penyimpanan di ReplicatedStorage
+local storageName = "DevHub_HiddenStorage"
+local hiddenStorage = ReplicatedStorage:FindFirstChild(storageName)
+if not hiddenStorage then
+    hiddenStorage = Instance.new("Folder")
+    hiddenStorage.Name = storageName
+    hiddenStorage.Parent = ReplicatedStorage
+end
+
+WorldTab:Input({ Title = "Nama Part/Model (Search)", Placeholder = "Contoh: Tree, Rock, Handle", Callback = function(txt) delSearchInput = txt end })
+local DelDropdown = WorldTab:Dropdown({ Title = "Target Visibility (Multi)", Values = { "Empty" }, Multi = true, Callback = function(values) selectedDelNames = values or {} end })
+
+local function scanDeleteTargets()
+    local foundList = {}
+    local uniqueNames = {}
+    if delSearchInput == "" then 
+        WindUI:Notify({ Title = "Info", Content = "Masukkan nama part dulu!", Duration = 3 }) 
+        return 
+    end
+    
+    local lowerSearch = string.lower(delSearchInput)
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") or obj:IsA("Model") or obj:IsA("UnionOperation") or obj:IsA("MeshPart") then
+            if string.find(string.lower(obj.Name), lowerSearch, 1, true) then
+                uniqueNames[obj.Name] = true
+            end
+        end
+    end
+    
+    for name, _ in pairs(uniqueNames) do
+        table.insert(foundList, name)
+    end
+    
+    if #foundList > 0 then
+        DelDropdown:Refresh(foundList)
+        WindUI:Notify({ Title = "Scan Complete", Content = string.format("Found %d objects.", #foundList), Duration = 5 })
+    else
+        DelDropdown:Refresh({"No Results"})
+        WindUI:Notify({ Title = "Scan Complete", Content = "Tidak ketemu.", Duration = 5 })
+    end
+end
+
+WorldTab:Button({ Title = "Scan Target Visibility", Callback = scanDeleteTargets })
+
+WorldTab:Toggle({ 
+    Title = "Hide Selected Target (Toggle)", 
+    Callback = function(state) 
+        isDeleteActive = state
+        
+        if state then
+            -- ACTION: HIDE (Pindahkan ke ReplicatedStorage)
+            WindUI:Notify({ Title = "Visibility Mode", Content = "Menyembunyikan objek...", Duration = 3 })
+            
+            for _, name in pairs(selectedDelNames) do
+                -- Cari objek di Workspace
+                for _, obj in pairs(workspace:GetDescendants()) do
+                    if obj.Name == name then
+                        -- Pastikan bukan karakter pemain
+                        if obj:IsDescendantOf(LocalPlayer.Character) then continue end
+                        
+                        -- Simpan Parent asli di Attribute
+                        if not obj:GetAttribute("OriginalParent") then
+                            obj:SetAttribute("OriginalParent", obj.Parent:GetFullName())
+                        end
+                        
+                        -- Pindahkan ke Storage
+                        obj.Parent = hiddenStorage
+                    end
+                end
+            end
+        else
+            -- ACTION: SHOW (Kembalikan ke Workspace)
+            WindUI:Notify({ Title = "Visibility Mode", Content = "Mengembalikan objek...", Duration = 3 })
+            
+            for _, obj in pairs(hiddenStorage:GetChildren()) do
+                local originalPath = obj:GetAttribute("OriginalParent")
+                local targetParent = workspace -- Default fallback
+                
+                -- Coba cari parent asli
+                if originalPath then
+                    -- Menggunakan string split untuk navigasi path (e.g., Workspace.Map.Trees)
+                    local pathParts = string.split(originalPath, ".")
+                    local current = game
+                    
+                    local success = pcall(function()
+                        for i, part in ipairs(pathParts) do
+                            if i > 1 then -- Lewati "game"
+                                if current[part] then
+                                    current = current[part]
+                                else
+                                    break -- Parent sudah tidak ada
+                                end
+                            end
+                        end
+                    end)
+                    
+                    if current and current ~= game then
+                        targetParent = current
+                    end
+                end
+                
+                -- Kembalikan objek
+                obj.Parent = targetParent
+                -- Hapus attribute agar bersih
+                obj:SetAttribute("OriginalParent", nil)
+            end
+        end
+    end 
+})
+
+-------------------------------------------------
+-- TELEPORT TAB
+-------------------------------------------------
+local TeleportSection = Window:Section({ Title = "Teleport" })
+local TeleportTab = TeleportSection:Tab({
+    Title = "Teleport",
+    Icon = "solar:map-arrow-right-bold",
+    IconColor = Yellow,
+    IconShape = "Square",
+    Border = true,
+})
+
+-- =========================
+-- TELEPORT TO PLAYER
+-- =========================
+TeleportTab:Paragraph({ 
+    Title = "Teleport to Player", 
+    Desc = "Pilih player, lalu teleport ke atasnya.", 
+    Image = "user", 
+    Color = "Blue" 
+})
+
+local selectedPlayerName = ""
+local PlayerDropdown = TeleportTab:Dropdown({ 
+    Title = "Select Player", 
+    Values = { "Loading..." }, 
+    Multi = false, 
+    Callback = function(Value) 
+        selectedPlayerName = Value 
+    end 
+})
+
+local function refreshPlayerList()
+    local playerList = {}
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer then
+            table.insert(playerList, plr.Name)
+        end
+    end
+    if #playerList == 0 then
+        PlayerDropdown:Refresh({"No Players"})
+    else
+        PlayerDropdown:Refresh(playerList)
+    end
+end
+
+Players.PlayerAdded:Connect(function(plr)
+    task.wait(1) 
+    refreshPlayerList()
+end)
+Players.PlayerRemoving:Connect(function(plr)
+    task.wait(0.5)
+    refreshPlayerList()
+end)
+refreshPlayerList()
+
+TeleportTab:Button({
+    Title = "Teleport to Selected Player",
+    Callback = function()
+        if selectedPlayerName == "" or selectedPlayerName == "No Players" then
+            WindUI:Notify({ Title = "Error", Content = "Pilih player dulu!", Duration = 3 })
+            return
+        end
+
+        local targetPlr = Players:FindFirstChild(selectedPlayerName)
+        local myChar = LocalPlayer.Character
+        local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
+
+        if targetPlr and targetPlr.Character and targetPlr.Character:FindFirstChild("HumanoidRootPart") and myHRP then
+            local targetRoot = targetPlr.Character.HumanoidRootPart
+            myHRP.CFrame = targetRoot.CFrame * CFrame.new(0, 5, 0)
+            WindUI:Notify({ Title = "Teleport", Content = "Teleported to " .. selectedPlayerName, Duration = 3 })
+        else
+            WindUI:Notify({ Title = "Error", Content = "Target tidak ditemukan.", Duration = 3 })
+        end
+    end
+})
+
+TeleportTab:Space()
+
+-- =========================
+-- TELEPORT TO PART (FIXED FOR TOOLS/MODELS)
+-- =========================
+TeleportTab:Paragraph({ 
+    Title = "Teleport to Item/Part", 
+    Desc = "Cari nama part/model, scan, lalu teleport.", 
+    Image = "box", 
+    Color = "Green" 
+})
+
+local tpPartInput = ""
+local selectedTpPartName = "" 
+
+TeleportTab:Input({ 
+    Title = "Nama Part (Search)", 
+    Placeholder = "Contoh: Handle, Coin, Sword", 
+    Callback = function(txt) 
+        tpPartInput = txt 
+    end 
+})
+
+local TpPartDropdown = TeleportTab:Dropdown({ 
+    Title = "Hasil Pencarian (Single)", 
+    Values = { "Empty" }, 
+    Multi = false, 
+    Callback = function(Value) 
+        selectedTpPartName = Value 
+    end 
+})
+
+local function scanTpParts()
+    local foundList = {}
+    local uniqueNames = {}
+    
+    if tpPartInput == "" then 
+        WindUI:Notify({ Title = "Info", Content = "Masukkan nama part dulu!", Duration = 3 }) 
+        return 
+    end
+    
+    local lowerSearch = string.lower(tpPartInput)
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") or obj:IsA("Model") then
+            if string.find(string.lower(obj.Name), lowerSearch, 1, true) then
+                uniqueNames[obj.Name] = true
+            end
+        end
+    end
+    
+    for name, _ in pairs(uniqueNames) do
+        table.insert(foundList, name)
+    end
+    
+    if #foundList > 0 then
+        TpPartDropdown:Refresh(foundList)
+        WindUI:Notify({ Title = "Scan Complete", Content = string.format("Found %d items.", #foundList), Duration = 5 })
+    else
+        TpPartDropdown:Refresh({"No Results"})
+    end
+end
+
+TeleportTab:Button({ 
+    Title = "Scan Part/Item", 
+    Callback = scanTpParts 
+})
+
+TeleportTab:Button({
+    Title = "Teleport to Selected Item",
+    Callback = function()
+        if selectedTpPartName == "" or selectedTpPartName == "Empty" then
+            WindUI:Notify({ Title = "Error", Content = "Pilih item dulu!", Duration = 3 })
+            return
+        end
+
+        local myChar = LocalPlayer.Character
+        local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
+        if not myHRP then return end
+
+        local targetsToVisit = {}
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if (obj:IsA("BasePart") or obj:IsA("Model")) and obj.Name == selectedTpPartName then
+                table.insert(targetsToVisit, obj)
+            end
+        end
+
+        if #targetsToVisit == 0 then
+            WindUI:Notify({ Title = "Error", Content = "Objek tidak ditemukan.", Duration = 3 })
+            return
+        end
+
+        WindUI:Notify({ Title = "Teleport", Content = string.format("Teleporting to %d items...", #targetsToVisit), Duration = 3 })
+
+        for index, targetObj in pairs(targetsToVisit) do
+            if not myHRP then break end
+            
+            local pos3D = nil
+            
+            if targetObj:IsA("Model") then
+                if targetObj.PrimaryPart then
+                    pos3D = targetObj.PrimaryPart.Position
+                elseif targetObj:FindFirstChild("Handle") then
+                    pos3D = targetObj.Handle.Position
+                elseif targetObj:FindFirstChild("HumanoidRootPart") then
+                    pos3D = targetObj.HumanoidRootPart.Position
+                else
+                    for _, child in pairs(targetObj:GetChildren()) do
+                        if child:IsA("BasePart") then
+                            pos3D = child.Position
+                            break
+                        end
+                    end
+                end
+            elseif targetObj:IsA("BasePart") then
+                pos3D = targetObj.Position
+            end
+
+            if pos3D then
+                local h = Instance.new("Highlight")
+                h.FillColor = Color3.fromRGB(0, 255, 255)
+                h.OutlineColor = Color3.fromRGB(255, 255, 255)
+                h.FillTransparency = 0.5
+                h.Adornee = targetObj
+                h.Parent = targetObj
+                
+                myHRP.CFrame = CFrame.new(pos3D + Vector3.new(0, 3, 0))
+                
+                task.delay(3, function()
+                    if h then h:Destroy() end
+                end)
+                
+                task.wait(0.5)
+            end
+        end
+        
+        WindUI:Notify({ Title = "Done", Content = "Teleport sequence finished.", Duration = 3 })
+    end
+})
+
+-------------------------------------------------
+-- COPY POSITION TAB (WALLHOP & SHIFTLOCK FIX)
+-------------------------------------------------
+local CopySection = Window:Section({ Title = "Recorder" })
+local CopyTab = CopySection:Tab({
+    Title = "Copy Position",
+    Icon = "solar:clipboard-bold",
+    IconColor = Color3.fromHex("#FF5722"), 
+    IconShape = "Square",
+    Border = true,
+})
+
+-- Variables
+local isRecording = false
+local waypoints = {}
+local lastRecordedPos = nil
+local MIN_DISTANCE = 4 -- Jarak optimal
+local recordStepper = nil
+local jumpConnection = nil
+local finalScriptString = ""
+
+-- UI Elements
+CopyTab:Paragraph({ 
+    Title = "Movement Recorder", 
+    Desc = "Mode: Ultra Responsive.\n-> Wallhop: Support Double Jump.\n-> Shiftlock: Gerak mengalir.", 
+    Image = "solar:record-bold", 
+    Color = "Red" 
+})
+
+local ScriptParagraph = CopyTab:Paragraph({ 
+    Title = "Generated Script", 
+    Desc = "Menunggu hasil rekaman...", 
+    Image = "solar:code-bold", 
+    Color = "Blue" 
+})
+
+local testInputValue = ""
+CopyTab:Input({
+    Title = "Test Script (Paste Disini)",
+    Placeholder = "Tempel script hasil rekaman...",
+    Callback = function(txt)
+        testInputValue = txt
+    end
+})
+
+-- Function: Generate Script (RESPONSIVE WALLHOP)
+local function generateWaypointScript()
+    if #waypoints < 2 then
+        finalScriptString = "-- Error: Titik terlalu sedikit."
+        ScriptParagraph:SetDesc("Gagal: Perlu minimal 2 titik jalur.")
+        return
+    end
+
+    local scriptStr = "-- Ultra Responsive Walker (Wallhop Support)\n"
+    scriptStr = scriptStr .. "-- Fix: No Jump Cooldown, Anti-Stuck, Air Control.\n\n"
+    
+    scriptStr = scriptStr .. "local Players = game:GetService('Players')\n"
+    scriptStr = scriptStr .. "local RunService = game:GetService('RunService')\n"
+    scriptStr = scriptStr .. "local player = Players.LocalPlayer\n"
+    scriptStr = scriptStr .. "local char = player.Character or player.CharacterAdded:Wait()\n"
+    scriptStr = scriptStr .. "local hrp = char:WaitForChild('HumanoidRootPart')\n"
+    scriptStr = scriptStr .. "local hum = char:WaitForChild('Humanoid')\n\n"
+
+    -- Buat Table Waypoints
+    scriptStr = scriptStr .. "local waypoints = {\n"
+    for i, wp in ipairs(waypoints) do
+        local p = wp.Position
+        scriptStr = scriptStr .. string.format("    {Position = Vector3.new(%d, %d, %d), Action = '%s'},\n", p.X, p.Y, p.Z, wp.Action)
+    end
+    scriptStr = scriptStr .. "}\n\n"
+
+    -- LOGIC RUNNER
+    scriptStr = scriptStr .. "local currentWP = 1\n"
+    scriptStr = scriptStr .. "local SPEED = 18\n\n"
+
+    scriptStr = scriptStr .. "RunService.Heartbeat:Connect(function()\n"
+    scriptStr = scriptStr .. "    if currentWP > #waypoints then return end\n\n"
+    
+    scriptStr = scriptStr .. "    local wp = waypoints[currentWP]\n"
+    scriptStr = scriptStr .. "    local targetPos = wp.Position\n"
+    scriptStr = scriptStr .. "    local myPos = hrp.Position\n"
+    scriptStr = scriptStr .. "    local dist = (targetPos - myPos).Magnitude\n\n"
+
+    -- ==========================================
+    -- 1. LOGIC JUMP (WALLHOP SUPPORT)
+    -- ==========================================
+    scriptStr = scriptStr .. "    -- Jika ini titik lompat\n"
+    scriptStr = scriptStr .. "    if wp.Action == 'Jump' then\n"
+    -- PERBAIKAN: Langsung lompat, tidak ada cek "sudah lompat belum" (Anti Cooldown)
+    -- Ini memungkinkan lompat ganda cepat untuk Wallhop
+    scriptStr = scriptStr .. "        hum:ChangeState(Enum.HumanoidStateType.Jumping)\n"
+    
+    scriptStr = scriptStr .. "        -- Tentukan target pergerakan\n"
+    scriptStr = scriptStr .. "        -- Jika ada titik selanjutnya, kejar titik itu saat di udara\n"
+    scriptStr = scriptStr .. "        local nextWP = waypoints[currentWP + 1]\n"
+    scriptStr = scriptStr .. "        if nextWP then\n"
+    scriptStr = scriptStr .. "            hum:MoveTo(nextWP.Position)\n"
+    scriptStr = scriptStr .. "            local dir = (nextWP.Position - myPos).Unit\n"
+    -- Dorong kuat saat lompat agar tidak jatuh
+    scriptStr = scriptStr .. "            hrp.Velocity = Vector3.new(dir.X * SPEED, hrp.Velocity.Y + 2, dir.Z * SPEED)\n"
+    scriptStr = scriptStr .. "        end\n"
+    
+    -- Skip langsung ke titik selanjutnya agar tidak dobol lompat di titik yang sama
+    scriptStr = scriptStr .. "        currentWP = currentWP + 1\n"
+    scriptStr = scriptStr .. "        return\n"
+    scriptStr = scriptStr .. "    end\n\n"
+
+    -- ==========================================
+    -- 2. LOGIC WALK (AGGRESSIVE)
+    -- ==========================================
+    scriptStr = scriptStr .. "    -- Jalan ke titik saat ini\n"
+    scriptStr = scriptStr .. "    hum:MoveTo(targetPos)\n\n"
+    
+    -- Jika jarak sudah dekat, next
+    scriptStr = scriptStr .. "    if dist < 2 then\n"
+    scriptStr = scriptStr .. "        currentWP = currentWP + 1\n"
+    scriptStr = scriptStr .. "    end\n\n"
+
+    -- Air Control (Jika sedang di udara tapi bukan action lompat)
+    scriptStr = scriptStr .. "    if hum.FloorMaterial == Enum.Material.Air then\n"
+    scriptStr = scriptStr .. "        local dir = (targetPos - myPos).Unit\n"
+    scriptStr = scriptStr .. "        hrp.Velocity = Vector3.new(dir.X * SPEED, hrp.Velocity.Y, dir.Z * SPEED)\n"
+    scriptStr = scriptStr .. "    end\n"
+
+    scriptStr = scriptStr .. "end)\n"
+
+    finalScriptString = scriptStr
+    ScriptParagraph:SetDesc(string.format("Sukses! %d Titik.\n(Wallhop & Shiftlock Fix)", #waypoints))
+end
+
+-- Function: Toggle Recording
+local function toggleRecording(state)
+    isRecording = state
+    
+    if isRecording then
+        waypoints = {}
+        lastRecordedPos = nil
+        finalScriptString = ""
+        ScriptParagraph:SetDesc("Sedang merekam...")
+        
+        local char = LocalPlayer.Character
+        if not char then return end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        local hum = char:FindFirstChild("Humanoid")
+        if not hrp or not hum then return end
+        
+        table.insert(waypoints, {Position = hrp.Position, Action = "Walk"})
+        lastRecordedPos = hrp.Position
+        
+        WindUI:Notify({ Title = "Record", Content = "Recording Started.", Duration = 3 })
+        
+        recordStepper = RunService.Heartbeat:Connect(function()
+            if not isRecording then return end
+            local dist = (hrp.Position - lastRecordedPos).Magnitude
+            if dist >= MIN_DISTANCE then
+                table.insert(waypoints, {Position = hrp.Position, Action = "Walk"})
+                lastRecordedPos = hrp.Position
+            end
+        end)
+        
+        -- RECORDING: Deteksi Jump tanpa filter
+        jumpConnection = hum.StateChanged:Connect(function(old, new)
+            if not isRecording then return end
+            if new == Enum.HumanoidStateType.Jumping then
+                -- Catat titik lompat persis di posisi karakter
+                table.insert(waypoints, {Position = hrp.Position, Action = "Jump"})
+            end
+        end)
+        
+    else
+        if recordStepper then recordStepper:Disconnect() end
+        if jumpConnection then jumpConnection:Disconnect() end
+        
+        WindUI:Notify({ Title = "Record", Content = string.format("Stopped. %d Waypoints captured.", #waypoints), Duration = 3 })
+        generateWaypointScript()
+    end
+end
+
+-- UI: Main Toggle
+CopyTab:Toggle({
+    Title = "Start / Stop Recording",
+    Default = false,
+    Callback = function(Value)
+        toggleRecording(Value)
+    end
+})
+
+CopyTab:Space()
+
+-- UI: Test Button
+CopyTab:Button({
+    Title = "Test Walk Script (Wallhop Mode)",
+    Callback = function()
+        if testInputValue == "" then
+            WindUI:Notify({ Title = "Error", Content = "Input kosong!", Duration = 3 })
+            return
+        end
+        
+        local func, err = loadstring(testInputValue)
+        if not func then
+            WindUI:Notify({ Title = "Error", Content = "Script error: " .. tostring(err), Duration = 5 })
+            return
+        end
+        
+        WindUI:Notify({ Title = "Testing", Content = "Running Ultra Responsive Script...", Duration = 3 })
+        task.spawn(func)
+    end
+})
+
+-- UI: Copy Button
+CopyTab:Button({
+    Title = "Copy Script to Clipboard",
+    Callback = function()
+        if finalScriptString == "" then
+            WindUI:Notify({ Title = "Error", Content = "Rekam dulu!", Duration = 3 })
+            return
+        end
+        
+        if setclipboard then
+            setclipboard(finalScriptString)
+            WindUI:Notify({ Title = "Success", Content = "Script disalin!", Duration = 3 })
+        else
+            WindUI:Notify({ Title = "Error", Content = "Executor tidak support setclipboard.", Duration = 3 })
+        end
+    end
+})
+
+CopyTab:Button({
+    Title = "Reset Data",
+    Callback = function()
+        waypoints = {}
+        finalScriptString = ""
+        ScriptParagraph:SetDesc("Data di-reset.")
+    end
+})
+
+-------------------------------------------------
+-- MISC TAB (FIXED RESPAWN RESET)
+-------------------------------------------------
+local MiscSection = Window:Section({ Title = "Miscellaneous" })
+local MiscTab = MiscSection:Tab({ Title = "Misc", Icon = "solar:settings-bold", IconColor = Purple, IconShape = "Square", Border = true })
+
+-- =========================
+-- KILL TOOLS (TARGET & ALL)
+-- =========================
+MiscTab:Section({ Title = "Kill Tools (Sword Required)" })
+MiscTab:Paragraph({ Title = "Info", Desc = "Pegang Sword.\nTarget: Support Nama Singkat/Display.\nMetode: Activate + Touch All Parts.", Image = "solar:danger-triangle-bold", Color = "Red" })
+
+local killTargetInput = ""
+local spamKillTargetEnabled = false
+local spamKillAllEnabled = false
+local killTargetToggleRef = nil -- Referensi UI
+local killAllToggleRef = nil -- Referensi UI
+
+MiscTab:Input({ 
+    Title = "Target Name (Display/Username)", 
+    Placeholder = "Contoh: BotReal1, ProPlayer", 
+    Callback = function(txt) 
+        killTargetInput = txt 
+    end 
+})
+
+local function attackTargetFixed(targetChar)
+    local char = LocalPlayer.Character
+    if not char then return end
+    
+    local tool = char:FindFirstChildOfClass("Tool")
+    if not tool or not tool:FindFirstChild("Handle") then return end
+    
+    local handle = tool.Handle
+    local hum = targetChar:FindFirstChild("Humanoid")
+    if not hum or hum.Health <= 0 then return end
+
+    tool:Activate()
+    for _, part in pairs(targetChar:GetChildren()) do
+        if part:IsA("BasePart") then
+            firetouchinterest(handle, part, 0)
+            task.wait()
+            firetouchinterest(handle, part, 1)
+        end
+    end
+end
+
+local function findTargetPlayer(inputName)
+    local lowerInput = string.lower(inputName)
+    local foundPlayers = {}
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer then
+            if string.lower(plr.Name) == lowerInput or string.find(string.lower(plr.Name), lowerInput) then
+                table.insert(foundPlayers, plr)
+            elseif string.lower(plr.DisplayName) == lowerInput or string.find(string.lower(plr.DisplayName), lowerInput) then
+                table.insert(foundPlayers, plr)
+            end
+        end
+    end
+    return foundPlayers
+end
+
+killTargetToggleRef = MiscTab:Toggle({ 
+    Title = "Spam Kill Target (One Hit)", 
+    Default = false, 
+    Callback = function(state) 
+        spamKillTargetEnabled = state 
+        if state then
+            if killTargetInput == "" then
+                WindUI:Notify({ Title = "Error", Content = "Masukkan nama target!", Duration = 3 })
+                if killTargetToggleRef then killTargetToggleRef:SetState(false) end
+                return
+            end
+            local targets = findTargetPlayer(killTargetInput)
+            if #targets == 0 then
+                WindUI:Notify({ Title = "Error", Content = "Target tidak ditemukan.", Duration = 3 })
+                if killTargetToggleRef then killTargetToggleRef:SetState(false) end
+                return
+            end
+            for _, targetPlr in pairs(targets) do
+                WindUI:Notify({ Title = "Locking Target", Content = string.format("Display: %s | User: %s", targetPlr.DisplayName, targetPlr.Name), Duration = 5 })
+            end
+            task.spawn(function()
+                while spamKillTargetEnabled do
+                    for _, targetPlr in pairs(targets) do
+                        if targetPlr.Character and targetPlr.Character:FindFirstChild("Humanoid") and targetPlr.Character.Humanoid.Health > 0 then
+                            attackTargetFixed(targetPlr.Character)
+                        end
+                    end
+                    task.wait(0.1)
+                end
+            end)
+        end
+    end 
+})
+
+killAllToggleRef = MiscTab:Toggle({ 
+    Title = "Spam Kill All Players (One Hit)", 
+    Default = false, 
+    Callback = function(state) 
+        spamKillAllEnabled = state 
+        if state then
+            WindUI:Notify({ Title = "Kill All", Content = "Activated.", Duration = 3 })
+            task.spawn(function()
+                while spamKillAllEnabled do
+                    for _, plr in pairs(Players:GetPlayers()) do
+                        if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("Humanoid") then
+                            if plr.Character.Humanoid.Health > 0 then
+                                attackTargetFixed(plr.Character)
+                            end
+                        end
+                    end
+                    task.wait(0.3) 
+                end
+            end)
+        end
+    end 
+})
+
+MiscTab:Space()
+MiscTab:Section({ Title = "Fake Lag" })
+local isFakeLagEnabled = false
+task.spawn(function() while true do task.wait() if isFakeLagEnabled then local start = tick() while tick() - start < 0.2 do end end end end)
+MiscTab:Toggle({ Title = "Enable Super Lag", Callback = function(state) isFakeLagEnabled = state WindUI:Notify({ Title = "Fake Lag", Content = state and "Activated" or "Deactivated", Duration = 3 }) end })
+
+MiscTab:Space()
+MiscTab:Section({ Title = "Interaction" })
+local instantInteractEnabled = false local instantInteractConnections = {}
+local function enableInstantInteract() for _, prompt in pairs(workspace:GetDescendants()) do if prompt:IsA("ProximityPrompt") then fireproximityprompt(prompt) end end table.insert(instantInteractConnections, workspace.DescendantAdded:Connect(function(desc) if desc:IsA("ProximityPrompt") then task.wait(0.1) if instantInteractEnabled then fireproximityprompt(desc) end end end)) table.insert(instantInteractConnections, ProximityPromptService.PromptShown:Connect(function(prompt) if instantInteractEnabled then fireproximityprompt(prompt) end end)) end
+local function disableInstantInteract() for _, conn in pairs(instantInteractConnections) do if conn then conn:Disconnect() end end instantInteractConnections = {} end
+MiscTab:Toggle({ Title = "Instant Interact (Auto)", Callback = function(state) instantInteractEnabled = state if state then enableInstantInteract() WindUI:Notify({ Title = "Interact", Content = "Instant Interact Enabled", Duration = 3 }) else disableInstantInteract() WindUI:Notify({ Title = "Interact", Content = "Instant Interact Disabled", Duration = 3 }) end end })
+
+MiscTab:Space()
+MiscTab:Section({ Title = "Ghost Mode System" })
+
+-- =========================
+-- GHOST MODE VARIABLES
+-- =========================
+local ghostGuiInstance = nil
+local invis_on = false 
+local invisChair = nil
+local ghostToggleRef = nil 
+local isDraggingGhost = false
+local dragInputGhost = nil
+local dragStartGhost = nil
+local startPosGhost = nil
+
+local function setTransparency(character, transparency) 
+    for _, part in pairs(character:GetDescendants()) do 
+        if part:IsA("BasePart") or part:IsA("Decal") then 
+            part.Transparency = transparency 
+        end 
+    end 
+end
+
+-- =========================
+-- GHOST GUI SETUP
+-- =========================
+local function createGhostGui()
+    if ghostGuiInstance then return end
+
+    local ScreenGui = Instance.new("ScreenGui")
+    local DragFrame = Instance.new("Frame")
+    local GhostButton = Instance.new("TextButton")
+
+    ScreenGui.Name = "GhostGui"
+    ScreenGui.ResetOnSpawn = false
+    ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+    DragFrame.Name = "DragFrame"
+    DragFrame.Parent = ScreenGui
+    DragFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    DragFrame.BorderSizePixel = 0
+    DragFrame.Size = UDim2.new(0, 200, 0, 80)
+    DragFrame.Position = UDim2.new(0.6, 0, 0.4, 0) 
+    DragFrame.ZIndex = 1
+    DragFrame.Active = true
+
+    GhostButton.Name = "GhostButton"
+    GhostButton.Parent = DragFrame
+    GhostButton.BackgroundColor3 = Color3.fromRGB(150, 50, 150) 
+    GhostButton.Size = UDim2.new(1, 0, 0.5, 0)
+    GhostButton.Position = UDim2.new(0, 0, 0, 0)
+    GhostButton.Font = Enum.Font.SourceSans
+    GhostButton.Text = "Ghost: OFF"
+    GhostButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    GhostButton.TextSize = 20
+    GhostButton.ZIndex = 2
+    GhostButton.Active = true
+
+    ghostGuiInstance = ScreenGui
+
+    -- Manual Drag
+    DragFrame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            isDraggingGhost = true
+            dragStartGhost = input.Position
+            startPosGhost = DragFrame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then isDraggingGhost = false end
+            end)
+        end
+    end)
+
+    DragFrame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInputGhost = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInputGhost and isDraggingGhost then
+            local delta = input.Position - dragStartGhost
+            DragFrame.Position = UDim2.new(startPosGhost.X.Scale, startPosGhost.X.Offset + delta.X, startPosGhost.Y.Scale, startPosGhost.Y.Offset + delta.Y)
+        end
+    end)
+
+    GhostButton.MouseButton1Click:Connect(function()
+        toggleGhostLogic(nil)
+    end)
+end
+
+-- =========================
+-- GHOST MODE LOGIC
+-- =========================
+function toggleGhostLogic(state)
+    if state == nil then state = not invis_on end
+
+    local char = LocalPlayer.Character
+    
+    if state then
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            local savedpos = char.HumanoidRootPart.CFrame
+         --   WindUI:Notify({ Title = "Ghost Mode", Content = "Activated.", Duration = 3 })
+            
+            invisChair = Instance.new('Seat', workspace)
+            invisChair.Anchored = false
+            invisChair.CanCollide = false
+            invisChair.Name = 'invischair'
+            invisChair.Transparency = 1
+            invisChair.CFrame = savedpos
+            
+            local Weld = Instance.new("Weld", invisChair)
+            Weld.Part0 = invisChair
+            Weld.Part1 = char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
+            
+            setTransparency(char, 0.5)
+            invis_on = true
+            
+            if ghostGuiInstance and ghostGuiInstance:FindFirstChild("DragFrame", true) then
+                local btn = ghostGuiInstance.DragFrame:FindFirstChild("GhostButton", true)
+                if btn then btn.Text = "Ghost: ON" end
+            end
+            
+            if ghostToggleRef then ghostToggleRef:SetState(true) end
+        end
+    else
+        if invisChair then
+            local currentGhostPos = char.HumanoidRootPart.CFrame
+            invisChair:Destroy()
+            invisChair = nil
+            
+            char.HumanoidRootPart.CFrame = currentGhostPos * CFrame.new(0, 0, 0)
+            task.wait(0.15)
+            char.HumanoidRootPart.CFrame = currentGhostPos
+            task.wait(0.15)
+            char.HumanoidRootPart.CFrame = currentGhostPos * CFrame.new(0, 0, 0)
+            
+            setTransparency(char, 0)
+            
+        --    WindUI:Notify({ Title = "Ghost Mode", Content = "Deactivated.", Duration = 3 })
+        end
+        invis_on = false
+        
+        if ghostGuiInstance and ghostGuiInstance:FindFirstChild("DragFrame", true) then
+            local btn = ghostGuiInstance.DragFrame:FindFirstChild("GhostButton", true)
+            if btn then btn.Text = "Ghost: OFF" end
+        end
+        
+        if ghostToggleRef then ghostToggleRef:SetState(false) end
+    end
+end
+
+-- =========================
+-- AUTO RESET SAAT MATI/RESPAWN
+-- =========================
+LocalPlayer.CharacterAdded:Connect(function()
+    -- Reset Kill Tools
+    spamKillTargetEnabled = false
+    spamKillAllEnabled = false
+    if killTargetToggleRef then killTargetToggleRef:SetState(false) end
+    if killAllToggleRef then killAllToggleRef:SetState(false) end
+    
+    -- Reset Ghost Mode
+    invis_on = false
+    invisChair = nil
+    if ghostGuiInstance and ghostGuiInstance:FindFirstChild("DragFrame", true) then
+        local btn = ghostGuiInstance.DragFrame:FindFirstChild("GhostButton", true)
+        if btn then btn.Text = "Ghost: OFF" end
+    end
+    if ghostToggleRef then ghostToggleRef:SetState(false) end
+end)
+
+ghostToggleRef = MiscTab:Toggle({ 
+    Title = "Show Ghost GUI & Activate", 
+    Default = false,
+    Callback = function(state) 
+        if state then
+            createGhostGui() 
+            if ghostGuiInstance then ghostGuiInstance.Enabled = true end
+            toggleGhostLogic(true) 
+        else
+            if ghostGuiInstance then ghostGuiInstance.Enabled = false end
+            toggleGhostLogic(false) 
+        end
+    end 
+})
+
+MiscTab:Paragraph({ Title = "Ghost Mode Info", Desc = "1. ON: Karakter freeze.\n2. OFF: Teleport Sequence.\n3. Noclip aktif otomatis saat teleport.", Image = "solar:ghost-bold", Color = "Purple" })
