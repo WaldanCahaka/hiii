@@ -36,8 +36,8 @@ end
 -- WINDOW SETTINGS
 -- =========================
 local Window = WindUI:CreateWindow({
-    Title = "DEV HUB  |  Utility Panel",
-    Author = "by Developer",
+    Title = "AMBA HUB  |  ULTIMATE",
+    Author = "by Developer andi ktl",
     Folder = "DevConfig",
     Icon = "solar:code-bold",
     Background = "rbxassetid://110217248149185", 
@@ -67,6 +67,7 @@ local Grey = Color3.fromHex("#83889E")
 local Blue = Color3.fromHex("#257AF7")
 local Red = Color3.fromHex("#EF4F1D")
 
+
 -------------------------------------------------
 -- INFORMATION TAB (WALDAN EDITION)
 -------------------------------------------------
@@ -81,7 +82,9 @@ local InfoTab = InfoSection:Tab({
 
 InfoTab:Select() 
 
--- Variables for Stats
+-- =========================
+-- LIVE DIAGNOSTICS
+-- =========================
 local StatsParagraph = InfoTab:Paragraph({ 
     Title = "Live Diagnostics", 
     Desc = "Calculating data...", 
@@ -89,11 +92,9 @@ local StatsParagraph = InfoTab:Paragraph({
     Color = "Green" 
 })
 
--- Function Update Stats
 task.spawn(function()
     while task.wait(1) do
-        local fps = math.floor(workspace:GetRealTimeReplicatedCount() > 0 and 60 or (1/task.wait())) -- Basic FPS Logic
-        -- Jika pakai executor modern, biasanya ada function khusus, tapi ini fallback universal:
+        local fps = math.floor(1/game:GetService("RunService").RenderStepped:Wait())
         local ping = math.floor(LocalPlayer:GetNetworkPing() * 1000)
         local protocolStatus = "Active"
         
@@ -104,7 +105,27 @@ task.spawn(function()
     end
 end)
 
+-- =========================
+-- PERFORMANCE CONTROL
+-- =========================
 InfoTab:Section({ Title = "Performance Control" })
+
+-- Paragraph khusus pantau FPS
+local FPSMonitor = InfoTab:Paragraph({ 
+    Title = "FPS Monitor", 
+    Desc = "Loading FPS data...", 
+    Image = "solar:play-circle-bold", 
+    Color = "Orange" 
+})
+
+-- Update FPS Monitor secara real-time
+task.spawn(function()
+    local RunService = game:GetService("RunService")
+    while task.wait(0.5) do
+        local currentFps = math.floor(1/RunService.RenderStepped:Wait())
+        FPSMonitor:SetDesc("Current FPS: " .. currentFps .. " FPS")
+    end
+end)
 
 -- FPS CAP Slider
 InfoTab:Slider({
@@ -121,6 +142,61 @@ InfoTab:Slider({
     end
 })
 
+-- Toggle FPS Boost
+InfoTab:Toggle({
+    Title = "FPS Boost (Lighting Fix)",
+    Default = false,
+    Callback = function(state)
+        local Lighting = game:GetService("Lighting")
+        if state then
+            Lighting.GlobalShadows = false
+            Lighting.FogEnd = 9e9
+            settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+            for _, v in pairs(Lighting:GetChildren()) do
+                if v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("ColorCorrectionEffect") or v:IsA("BloomEffect") or v:IsA("DepthOfFieldEffect") then
+                    v.Enabled = false
+                end
+            end
+            WindUI:Notify({ Title = "WALDAN", Content = "FPS Boost: Active", Duration = 2 })
+        else
+            Lighting.GlobalShadows = true
+            for _, v in pairs(Lighting:GetChildren()) do
+                if v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("ColorCorrectionEffect") or v:IsA("BloomEffect") or v:IsA("DepthOfFieldEffect") then
+                    v.Enabled = true
+                end
+            end
+            WindUI:Notify({ Title = "WALDAN", Content = "FPS Boost: Inactive", Duration = 2 })
+        end
+    end
+})
+
+-- Toggle Anti Lag
+InfoTab:Toggle({
+    Title = "Anti Lag (Low Textures)",
+    Default = false,
+    Callback = function(state)
+        if state then
+            for _, v in pairs(game:GetDescendants()) do
+                if v:IsA("BasePart") and not v:IsA("MeshPart") then
+                    v.Material = Enum.Material.SmoothPlastic
+                elseif v:IsA("Texture") or v:IsA("Decal") then
+                    v.Transparency = 1
+                elseif v:IsA("ParticleEmitter") or v:IsA("Trail") then
+                    v.Enabled = false
+                end
+            end
+            workspace.Terrain.Decoration = false
+            WindUI:Notify({ Title = "WALDAN", Content = "Anti Lag: Enabled", Duration = 2 })
+        else
+            workspace.Terrain.Decoration = true
+            WindUI:Notify({ Title = "WALDAN", Content = "Anti Lag: Disabled", Duration = 2 })
+        end
+    end
+})
+
+-- =========================
+-- PROJECT IDENTITY
+-- =========================
 InfoTab:Section({ Title = "Project Identity" })
 
 InfoTab:Paragraph({ 
@@ -374,209 +450,7 @@ AimTab:Toggle({
 })
 
 -------------------------------------------------
--- AUTHOR: WzxX | VERSION: 10.0 (SYNC FIXED)
--------------------------------------------------
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local Mouse = LocalPlayer:GetMouse()
-
-local MainSection = Window:Section({ Title = "Waldan Ghost Sync" })
-local MainTab = MainSection:Tab({
-    Title = "Ghost & Guard",
-    Icon = "solar:shield-check-bold",
-    IconColor = Color3.fromRGB(0, 255, 150),
-})
-
--- State Variables
-local antiTpActive = false
-local noclipActive = false
-local ghostActive = false
-local antiGhostActive = false
-local ghostFireEnabled = true
-
-local lastSafeCFrame = nil
-local maxWalkSpeedBuffer = 3
-
--- Memory Eraser & Ghost
-local deletedPart = nil
-local originalParent = nil
-local invisChair = nil
-
--- =========================
--- UTILITY FUNCTIONS
--- =========================
-local function setTransparency(trans)
-    local char = LocalPlayer.Character
-    if not char then return end
-    for _, v in pairs(char:GetDescendants()) do
-        if v:IsA("BasePart") or v:IsA("Decal") then v.Transparency = trans end
-    end
-end
-
-local function restoreEraser()
-    if deletedPart and originalParent then
-        deletedPart.Parent = originalParent
-        deletedPart = nil
-        originalParent = nil
-    end
-end
-
--- =========================
--- SYSTEM 1: GHOST MODE (INVIS)
--- =========================
-local function toggleGhost(state)
-    ghostActive = state
-    local char = LocalPlayer.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    
-    if state then
-        if hrp then
-            local savedpos = hrp.CFrame
-            invisChair = Instance.new('Seat', workspace)
-            invisChair.Anchored = false
-            invisChair.CanCollide = false
-            invisChair.Name = 'WaldanGhostSeat'
-            invisChair.Transparency = 1
-            invisChair.CFrame = savedpos
-            
-            local Weld = Instance.new("Weld", invisChair)
-            Weld.Part0 = invisChair
-            Weld.Part1 = char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
-            
-            setTransparency(0.5)
-            WindUI:Notify({ Title = "WALDAN", Content = "Ghost Mode Active: Anti-TP Paused." })
-        end
-    else
-        if invisChair then
-            invisChair:Destroy()
-            invisChair = nil
-            setTransparency(0)
-            -- Paksa balik ke posisi terakhir biar gak stuck
-            task.wait(0.1)
-            if hrp then lastSafeCFrame = hrp.CFrame end
-            WindUI:Notify({ Title = "WALDAN", Content = "Ghost Mode Off: Anti-TP Resumed." })
-        end
-    end
-end
-
--- =========================
--- SYSTEM 2: ANTI-TP (WITH GHOST SYNC)
--- =========================
-RunService.PostSimulation:Connect(function()
-    -- JIKA GHOST MODE AKTIF, ANTI-TP DIMATIKAN SEMENTARA BIAR GAK STUCK
-    if not antiTpActive or ghostActive then return end
-    
-    local char = LocalPlayer.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    
-    if root then
-        if not lastSafeCFrame then lastSafeCFrame = root.CFrame return end
-        local distanceMoved = (root.Position - lastSafeCFrame.Position).Magnitude
-        
-        if distanceMoved > maxWalkSpeedBuffer then
-            root.CFrame = lastSafeCFrame
-            root.AssemblyLinearVelocity = Vector3.new(0,0,0)
-        else
-            lastSafeCFrame = root.CFrame
-        end
-    end
-end)
-
--- =========================
--- SYSTEM 3: ANTI-GHOSTMODE & ERASER
--- =========================
-RunService.Heartbeat:Connect(function()
-    local char = LocalPlayer.Character
-    if not char then return end
-
-    -- ANTI-GHOSTMODE: Paksa padat kalau fitur ini ON
-    if antiGhostActive and not ghostActive then
-        for _, v in pairs(char:GetDescendants()) do
-            if v:IsA("BasePart") then
-                if v.Transparency > 0 then v.Transparency = 0 end
-                if v.Name == "HumanoidRootPart" then v.CanCollide = true end
-            end
-        end
-    end
-
-    -- ERASER NOCLIP
-    if noclipActive then
-        local cam = workspace.CurrentCamera
-        local lookDir = cam.CFrame.LookVector
-        if lookDir.Y > -0.5 then
-            local rayParams = RaycastParams.new()
-            rayParams.FilterDescendantsInstances = {char}
-            local result = workspace:Raycast(cam.CFrame.Position, lookDir * 18, rayParams)
-            
-            if result and result.Instance:IsA("BasePart") then
-                local target = result.Instance
-                if target.Name ~= "Baseplate" and not target:IsA("Terrain") then
-                    if deletedPart ~= target then
-                        restoreEraser()
-                        originalParent = target.Parent
-                        deletedPart = target
-                        target.Parent = nil
-                    end
-                end
-            elseif deletedPart and (char.HumanoidRootPart.Position - deletedPart.Position).Magnitude > 22 then
-                restoreEraser()
-            end
-        else restoreEraser() end
-    else restoreEraser() end
-end)
-
--- =========================
--- UI INTEGRATION
--- =========================
-
-MainTab:Toggle({ 
-    Title = "Ghost Mode (Invis)", 
-    Default = false,
-    Callback = function(s) toggleGhost(s) end 
-})
-
-MainTab:Toggle({ 
-    Title = "Anti-Teleport (Safe Move)", 
-    Default = false,
-    Callback = function(s) 
-        antiTpActive = s 
-        if s and LocalPlayer.Character then lastSafeCFrame = LocalPlayer.Character.HumanoidRootPart.CFrame end
-    end 
-})
-
-MainTab:Toggle({ 
-    Title = "Anti-Ghostmode (Force Real)", 
-    Default = false,
-    Callback = function(s) antiGhostActive = s end 
-})
-
-MainTab:Toggle({ 
-    Title = "Eraser Noclip (Delete Forward)", 
-    Default = false,
-    Callback = function(s) noclipActive = s if not s then restoreEraser() end end 
-})
-
-MainTab:Slider({ 
-    Title = "Anti-TP Sensitivity", 
-    Step = 0.5, Value = { Min = 1, Max = 10, Default = 3 }, 
-    Callback = function(v) maxWalkSpeedBuffer = v end 
-})
-
--- Reset on Spawn
-LocalPlayer.CharacterAdded:Connect(function()
-    ghostActive = false
-    invisChair = nil
-    lastSafeCFrame = nil
-    restoreEraser()
-end)
-
-WindUI:Notify({ Title = "WALDAN V10.0", Content = "All Modules Synced & Stable.", Duration = 4 })
-
-
--------------------------------------------------
--- MOVEMENT TAB
+-- MOVEMENT TAB (ULTRA STEALTH BYPASS - NO HOOK)
 -------------------------------------------------
 local MoveSection = Window:Section({ Title = "Movement" })
 local MoveTab = MoveSection:Tab({
@@ -589,146 +463,100 @@ local MoveTab = MoveSection:Tab({
 
 local cframeEnabled = false
 local speed = 5
-local noclipEnabled = false
-local noclipConnection = nil
-local infJumpEnabled = false
-local jumpConnection = nil
-
--- =========================
--- MASTER BYPASS SYSTEM (NOCLIP + SPEED + ANTITELEPORT)
--- =========================
-local bypassConnection = nil
+local customWalkspeed = 16
 local noclipBypassActive = false
 local speedBypassActive = false
-local customWalkspeed = 16
+local infJumpEnabled = false
 
-local function updateBypassLogic()
-    -- Jika tidak ada fitur yang aktif, putuskan koneksi
-    if not noclipBypassActive and not speedBypassActive then
-        if bypassConnection then
-            bypassConnection:Disconnect()
-            bypassConnection = nil
-        end
-        -- Reset Normal State
-        local char = LocalPlayer.Character
-        if char then
-            for _, part in pairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then part.CanCollide = true end
+-- =========================================
+-- THE GHOST ENGINE (BYPASS TANPA MODIF METATABLE)
+-- =========================================
+-- Kita pake loop Heartbeat buat maksa state player, 
+-- tanpa nyentuh fungsi Kick game biar gak kedetect 0x3.
+
+RunService.Heartbeat:Connect(function(dt)
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChild("Humanoid")
+    if not hrp or not hum then return end
+
+    -- 1. STEALTH NOCLIP (NO GRAVITY LOCK)
+    if noclipBypassActive then
+        for _, part in pairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
             end
-            local hum = char:FindFirstChild("Humanoid")
-            if hum then hum.WalkSpeed = 16 end
         end
-        return
     end
 
-    -- Jika sudah ada koneksi, jangan buat baru (mencegah double loop)
-    if bypassConnection then return end
-
-    bypassConnection = RunService.Heartbeat:Connect(function()
-        local char = LocalPlayer.Character
-        if not char then return end
+    -- 2. SMART POSITION SYNC (BYPASS PULLBACK)
+    if (speedBypassActive or cframeEnabled) and hum.MoveDirection.Magnitude > 0 then
+        local targetSpeed = speedBypassActive and customWalkspeed or (16 + speed)
         
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        local hum = char:FindFirstChild("Humanoid")
+        -- Kita pake Velocity horisontal aja biar Gravitasi (Y) tetep jalan
+        local moveVel = hum.MoveDirection * targetSpeed
+        hrp.Velocity = Vector3.new(moveVel.X, hrp.Velocity.Y, moveVel.Z)
         
-        if not hrp or not hum then return end
+        -- Pake Lerp dikit biar gak karet (Rubberband)
+        hrp.CFrame = hrp.CFrame:Lerp(hrp.CFrame + (hum.MoveDirection * 0.1), 0.5)
+        
+        -- SPOOFING: Balikin Walkspeed asli ke 16 tiap frame biar script deteksi Adonis dapet nilai normal
+        hum.WalkSpeed = 16
+    else
+        if not speedBypassActive then hum.WalkSpeed = 16 end
+    end
+end)
 
-        -- 1. ANTI-TELEPORT / RESYNC FIX
-        -- Mencegah server memaksa karakter kembali ke posisi sebelumnya
-        -- Dengan sedikit mengubah posisi Y atau Velocity saat nembus tembok
-        if noclipBypassActive then
-            -- Logic Noclip (dengan cek tambahan agar tidak error)
-            for _, part in pairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = false
-                end
-            end
-            
-            -- Fix Teleport: Mencegah karakter "stuck" di dalam part
-            -- Memberikan sedikit dorongan ke atas jika jatuh terlalu cepat atau menembus
-            if hrp.Velocity.Y < -100 then
-                hrp.Velocity = Vector3.new(hrp.Velocity.X, -50, hrp.Velocity.Z)
-            end
-        end
-
-        -- 2. WALKSPEED BYPASS
-        if speedBypassActive then
-            -- Logika Smart Speed:
-            -- Jika diam (idle), kunci speed 16 (aman dari anti-cheat idle check).
-            -- Jika bergerak (move), paksa speed custom.
-            
-            if hum.MoveDirection.Magnitude > 0 then
-                if hum.WalkSpeed ~= customWalkspeed then
-                    hum.WalkSpeed = customWalkspeed
-                end
-            else
-                -- Saat diam, pastikan 16
-                if hum.WalkSpeed ~= 16 then
-                    hum.WalkSpeed = 16
-                end
-            end
-        end
-    end)
-end
-
--- UI: WalkSpeed Input & Slider
+-- =========================================
+-- UI CONTROLS (TETAP SESUAI ASLI)
+-- =========================================
 MoveTab:Input({ 
     Title = "Set WalkSpeed Value", 
     Placeholder = "Contoh: 50, 100", 
     Callback = function(txt) 
         local num = tonumber(txt)
-        if num and num > 0 then 
-            customWalkspeed = num
-            WindUI:Notify({ Title = "WalkSpeed", Content = "Speed set to: " .. num, Duration = 3 })
-        end 
+        if num then customWalkspeed = num end 
     end 
 })
 
 MoveTab:Slider({ 
     Title = "WalkSpeed Slider", 
     Step = 1, 
-    Value = { Min = 16, Max = 200, Default = 16 }, 
-    Callback = function(v) 
-        customWalkspeed = v 
-    end 
+    Value = { Min = 16, Max = 150, Default = 16 }, 
+    Callback = function(v) customWalkspeed = v end 
 })
 
--- UI: Toggle WalkSpeed
 MoveTab:Toggle({ 
     Title = "WalkSpeed Bypass (Anti-Detect)", 
     Default = false,
     Callback = function(state) 
         speedBypassActive = state
-        updateBypassLogic()
-        WindUI:Notify({ Title = "WalkSpeed", Content = state and "Bypass Activated" or "Restored to Normal", Duration = 3 })
+        WindUI:Notify({ Title = "Bypass", Content = state and "Speed Active" or "Normal", Duration = 2 })
     end 
 })
 
 MoveTab:Space()
 
--- UI: Toggle Noclip
 MoveTab:Toggle({ 
     Title = "Noclip Bypass (Anti-Teleport)", 
     Default = false,
     Callback = function(state) 
         noclipBypassActive = state
-        updateBypassLogic()
-        WindUI:Notify({ Title = "Noclip", Content = state and "Noclip Activated" or "Restored to Normal", Duration = 3 })
-    end 
-})
-
-MoveTab:Toggle({ 
-    Title = "Noclip (Standard - Less Safe)", 
-    Callback = function(state) 
-        noclipEnabled = state; 
-        toggleNoclip(state) 
+        if not state then
+            local char = LocalPlayer.Character
+            if char then
+                for _, p in pairs(char:GetDescendants()) do
+                    if p:IsA("BasePart") then p.CanCollide = true end
+                end
+            end
+        end
     end 
 })
 
 MoveTab:Space()
 
 -- =========================
--- FLOAT SYSTEM
+-- FLOAT SYSTEM (RAINBOW DESIGN)
 -- =========================
 local floatGuiInstance = nil 
 local floatBlock = nil
@@ -773,7 +601,7 @@ local function startFloat()
     bodyPos.P = 10000
     bodyPos.D = 1000
     bodyPos.Parent = rootPart
-    floatUpdateConn = RunService.Heartbeat:Connect(function()
+    floatUpdateConn = game:GetService("RunService").Heartbeat:Connect(function()
         if not (floatBlock and rootPart and bodyPos and floatActive) then return end
         if not rootPart:IsDescendantOf(workspace) then cleanFloat(); return end
         local isJumping = humanoid:GetState() == Enum.HumanoidStateType.Jumping or humanoid:GetState() == Enum.HumanoidStateType.Freefall
@@ -792,8 +620,8 @@ local function toggleFloatLogic(state)
     if state == nil then state = not floatActive end
     if state then
         if startFloat() then
-            if floatGuiInstance and floatGuiInstance:FindFirstChild("DragFrame", true) then
-                local btn = floatGuiInstance.DragFrame:FindFirstChild("FloatButton", true)
+            if floatGuiInstance then
+                local btn = floatGuiInstance:FindFirstChild("FloatButton", true)
                 if btn then btn.Text = "Float: ON" end
             end
             if floatToggleRef then floatToggleRef:SetState(true) end
@@ -805,36 +633,74 @@ local function toggleFloatLogic(state)
     end
 end
 
-LocalPlayer.CharacterAdded:Connect(function(char) cleanFloat() end)
-
 local function createFloatGui()
     if floatGuiInstance then return end 
     local ScreenGui = Instance.new("ScreenGui")
     local DragFrame = Instance.new("Frame")
     local FloatButton = Instance.new("TextButton")
+    local UIStroke = Instance.new("UIStroke")
+    local UIGradient = Instance.new("UIGradient")
+    local UICorner = Instance.new("UICorner")
+
     ScreenGui.Name = "FloatGui"
     ScreenGui.ResetOnSpawn = false
     ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
     DragFrame.Name = "DragFrame"
     DragFrame.Parent = ScreenGui
-    DragFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    DragFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     DragFrame.BorderSizePixel = 0
     DragFrame.Size = UDim2.new(0, 200, 0, 80)
     DragFrame.Position = UDim2.new(0.4, 0, 0.4, 0)
-    DragFrame.ZIndex = 1
     DragFrame.Active = true 
+
+    UICorner.CornerRadius = UDim.new(0, 10)
+    UICorner.Parent = DragFrame
+
+    UIStroke.Parent = DragFrame
+    UIStroke.Thickness = 4
+    UIStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    UIStroke.Color = Color3.fromRGB(255, 255, 255)
+
+    UIGradient.Parent = UIStroke
+    UIGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+        ColorSequenceKeypoint.new(0.2, Color3.fromRGB(255, 255, 0)),
+        ColorSequenceKeypoint.new(0.4, Color3.fromRGB(0, 255, 0)),
+        ColorSequenceKeypoint.new(0.6, Color3.fromRGB(0, 255, 255)),
+        ColorSequenceKeypoint.new(0.8, Color3.fromRGB(0, 0, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 255))
+    })
+
     FloatButton.Name = "FloatButton"
     FloatButton.Parent = DragFrame
-    FloatButton.BackgroundColor3 = Color3.fromRGB(100, 100, 255)
-    FloatButton.Size = UDim2.new(1, 0, 0.5, 0)
-    FloatButton.Position = UDim2.new(0, 0, 0, 0)
-    FloatButton.Font = Enum.Font.SourceSans
+    FloatButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    FloatButton.Size = UDim2.new(0.9, 0, 0.6, 0)
+    FloatButton.Position = UDim2.new(0.05, 0, 0.2, 0)
+    FloatButton.Font = Enum.Font.GothamBold
     FloatButton.Text = "Float: OFF"
     FloatButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    FloatButton.TextSize = 20
+    FloatButton.TextSize = 18
     FloatButton.ZIndex = 2
-    FloatButton.Active = true
+
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 8)
+    btnCorner.Parent = FloatButton
+
     floatGuiInstance = ScreenGui
+
+    -- Rainbow Animation
+    task.spawn(function()
+        local rot = 0
+        while true do
+            if not UIGradient or not UIGradient.Parent then break end
+            rot = rot + 2
+            UIGradient.Rotation = rot % 360
+            task.wait(0.02)
+        end
+    end)
+
+    -- Drag Logic
     DragFrame.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             isDragging = true
@@ -845,20 +711,26 @@ local function createFloatGui()
             end)
         end
     end)
+
     DragFrame.InputChanged:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
             dragInput = input
         end
     end)
-    UserInputService.InputChanged:Connect(function(input)
+
+    game:GetService("UserInputService").InputChanged:Connect(function(input)
         if input == dragInput and isDragging then
             local delta = input.Position - dragStart
             DragFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         end
     end)
+
     FloatButton.MouseButton1Click:Connect(function() toggleFloatLogic(nil) end)
 end
 
+-- =========================
+-- TOGGLE UI (JANGAN DIHAPUS)
+-- =========================
 floatToggleRef = MoveTab:Toggle({ 
     Title = "Show Float GUI & Activate", 
     Default = false,
@@ -874,37 +746,233 @@ floatToggleRef = MoveTab:Toggle({
     end 
 })
 
-MoveTab:Space()
+-------------------------------------------------
+-- WALDAN V100M: FLY SYSTEM (IDENTICAL DESIGN)
+-------------------------------------------------
+local flyGuiInstance = nil 
+local flySpeed = 60
+local minSpeed = 30
+local maxSpeed = 500
+local flying = false
+local flyConnection = nil
+local flyDragging = false
+local flyDragInput = nil
+local flyDragStart = nil
+local flyStartPos = nil
+local flyToggleRef = nil 
+
+local function disableFlight()
+    flying = false
+    if flyGuiInstance and flyGuiInstance:FindFirstChild("DragFrame", true) then
+        local btn = flyGuiInstance.DragFrame:FindFirstChild("FlyButton", true)
+        if btn then btn.Text = "Fly: OFF" end
+    end
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+        LocalPlayer.Character.Humanoid.PlatformStand = false
+        local hrp = LocalPlayer.Character.HumanoidRootPart
+        if hrp:FindFirstChild("VelocityHandler") then hrp.VelocityHandler:Destroy() end
+        if hrp:FindFirstChild("GyroHandler") then hrp.GyroHandler:Destroy() end
+    end
+    if flyConnection then flyConnection:Disconnect(); flyConnection = nil end
+end
+
+local function enableFlight()
+    if flying then return end
+    flying = true
+    if flyGuiInstance and flyGuiInstance:FindFirstChild("FlyButton", true) then
+        flyGuiInstance.DragFrame.FlyButton.Text = "Fly: ON"
+    end
+    
+    local camera = workspace.CurrentCamera
+    local controlModule = require(LocalPlayer.PlayerScripts:WaitForChild('PlayerModule'):WaitForChild("ControlModule"))
+    
+    local bv = Instance.new("BodyVelocity", LocalPlayer.Character.HumanoidRootPart)
+    bv.Name = "VelocityHandler"
+    bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+    
+    local bg = Instance.new("BodyGyro", LocalPlayer.Character.HumanoidRootPart)
+    bg.Name = "GyroHandler"
+    bg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+    bg.P = 1000
+    
+    LocalPlayer.Character.Humanoid.PlatformStand = true
+    flyConnection = RunService.RenderStepped:Connect(function()
+        if not flying or not LocalPlayer.Character then disableFlight() return end
+        bg.CFrame = camera.CoordinateFrame
+        local move = controlModule:GetMoveVector()
+        bv.Velocity = (camera.CFrame.RightVector * (move.X * flySpeed)) + (camera.CFrame.LookVector * (-move.Z * flySpeed))
+    end)
+end
+
+local function createFlyGui()
+    if flyGuiInstance then return end 
+    local ScreenGui = Instance.new("ScreenGui")
+    local DragFrame = Instance.new("Frame")
+    local FlyButton = Instance.new("TextButton")
+    local UIStroke = Instance.new("UIStroke")
+    local UIGradient = Instance.new("UIGradient")
+    local UICorner = Instance.new("UICorner")
+
+    ScreenGui.Name = "FlyGui"
+    ScreenGui.ResetOnSpawn = false
+    ScreenGui.Parent = game:GetService("CoreGui")
+
+    DragFrame.Name = "DragFrame"
+    DragFrame.Parent = ScreenGui
+    DragFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    DragFrame.Size = UDim2.new(0, 220, 0, 150)
+    DragFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+    DragFrame.Active = true 
+
+    UICorner.CornerRadius = UDim.new(0, 10)
+    UICorner.Parent = DragFrame
+
+    -- BORDER TEBAL RAINBOW (PERSIS FLOAT)
+    UIStroke.Parent = DragFrame
+    UIStroke.Thickness = 4
+    UIStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    UIStroke.Color = Color3.fromRGB(255, 255, 255)
+
+    UIGradient.Parent = UIStroke
+    UIGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+        ColorSequenceKeypoint.new(0.2, Color3.fromRGB(255, 255, 0)),
+        ColorSequenceKeypoint.new(0.4, Color3.fromRGB(0, 255, 0)),
+        ColorSequenceKeypoint.new(0.6, Color3.fromRGB(0, 255, 255)),
+        ColorSequenceKeypoint.new(0.8, Color3.fromRGB(0, 0, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 255))
+    })
+
+    FlyButton.Name = "FlyButton"
+    FlyButton.Parent = DragFrame
+    FlyButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    FlyButton.Size = UDim2.new(0.9, 0, 0, 35)
+    FlyButton.Position = UDim2.new(0.05, 0, 0.1, 0)
+    FlyButton.Font = Enum.Font.GothamBold
+    FlyButton.Text = "Fly: OFF"
+    FlyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    FlyButton.TextSize = 14
+    Instance.new("UICorner", FlyButton)
+
+    -- SLIDER SECTION
+    local SliderBar = Instance.new("Frame", DragFrame)
+    SliderBar.Size = UDim2.new(0.85, 0, 0, 8)
+    SliderBar.Position = UDim2.new(0.075, 0, 0.7, 0)
+    SliderBar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    Instance.new("UICorner", SliderBar)
+
+    -- ANIMASI MERAH PUTIH DI SLIDER
+    local SliderGrad = Instance.new("UIGradient", SliderBar)
+    SliderGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))
+    })
+
+    local SliderBtn = Instance.new("TextButton", SliderBar)
+    SliderBtn.Size = UDim2.new(0, 20, 0, 20)
+    SliderBtn.Position = UDim2.new(0.2, -10, 0.5, -10)
+    SliderBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    SliderBtn.Text = ""
+    Instance.new("UICorner", SliderBtn).CornerRadius = UDim.new(1, 0)
+
+    local SpeedLabel = Instance.new("TextLabel", DragFrame)
+    SpeedLabel.Size = UDim2.new(1, 0, 0, 20)
+    SpeedLabel.Position = UDim2.new(0, 0, 0.5, 0)
+    SpeedLabel.BackgroundTransparency = 1
+    SpeedLabel.Text = "Speed: " .. flySpeed
+    SpeedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    SpeedLabel.Font = Enum.Font.GothamBold
+
+    -- Rainbow & Merah Putih Animation
+    task.spawn(function()
+        local rot = 0
+        while DragFrame do
+            rot = rot + 2
+            UIGradient.Rotation = rot % 360
+            SliderGrad.Offset = Vector2.new(math.sin(tick()*2)*0.5, 0)
+            task.wait(0.02)
+        end
+    end)
+
+    -- Dragging Logic
+    DragFrame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            flyDragging = true
+            flyDragStart = input.Position
+            flyStartPos = DragFrame.Position
+        end
+    end)
+
+    game:GetService("UserInputService").InputChanged:Connect(function(input)
+        if flyDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - flyDragStart
+            DragFrame.Position = UDim2.new(flyStartPos.X.Scale, flyStartPos.X.Offset + delta.X, flyStartPos.Y.Scale, flyStartPos.Y.Offset + delta.Y)
+        end
+    end)
+    
+    game:GetService("UserInputService").InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then flyDragging = false end
+    end)
+
+    -- Slider Logic
+    local sDragging = false
+    SliderBtn.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then sDragging = true end end)
+    game:GetService("UserInputService").InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then sDragging = false end end)
+    game:GetService("UserInputService").InputChanged:Connect(function(i)
+        if sDragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+            local rel = math.clamp((i.Position.X - SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X, 0, 1)
+            SliderBtn.Position = UDim2.new(rel, -10, 0.5, -10)
+            flySpeed = math.floor(minSpeed + (maxSpeed - minSpeed) * rel)
+            SpeedLabel.Text = "Speed: " .. flySpeed
+        end
+    end)
+
+    FlyButton.MouseButton1Click:Connect(function()
+        if flying then disableFlight() else enableFlight() end
+    end)
+
+    flyGuiInstance = ScreenGui
+end
 
 -- =========================
--- OTHER MOVEMENT TOGGLES
+-- TOGGLE UI
 -- =========================
+flyToggleRef = MoveTab:Toggle({ 
+    Title = "Show Fly Control & Activate", 
+    Default = false,
+    Callback = function(state) 
+        if state then
+            createFlyGui() 
+            if flyGuiInstance then flyGuiInstance.Enabled = true end
+        else
+            if flyGuiInstance then flyGuiInstance.Enabled = false end
+            disableFlight() 
+        end
+    end 
+})
+
+
+MoveTab:Space()
+
 MoveTab:Toggle({
     Title = "Infinite Jump",
     Callback = function(state)
         infJumpEnabled = state
-        if jumpConnection then jumpConnection:Disconnect(); jumpConnection = nil end
-        if state then
-            jumpConnection = UserInputService.JumpRequest:Connect(function()
-                local char = LocalPlayer.Character
-                if char then local hum = char:FindFirstChild("Humanoid"); if hum then hum:ChangeState("Jumping") end end
-            end)
-        end
     end
 })
 
-MoveTab:Toggle({ Title = "Enable CFrame Speed", Callback = function(state) cframeEnabled = state end })
-MoveTab:Slider({ Title = "CFrame Speed (Stud/sec)", Step = 1, Value = { Min = 1, Max = 200, Default = 5 }, Callback = function(v) speed = v end })
-MoveTab:Input({ Title = "Manual CFrame Speed", Placeholder = "Enter number", Callback = function(txt) local num = tonumber(txt) if num and num > 0 then speed = num end end })
-
-RunService.RenderStepped:Connect(function(dt)
-    if not cframeEnabled then return end
-    local char = LocalPlayer.Character if not char then return end
-    local hum = char:FindFirstChild("Humanoid") local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hum or not hrp then return end
-    local dir = hum.MoveDirection
-    if dir.Magnitude > 0 then hrp.CFrame = hrp.CFrame + (dir * speed * dt) end
+UserInputService.JumpRequest:Connect(function()
+    if infJumpEnabled then
+        local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
+        if hum then hum:ChangeState("Jumping") end
+    end
 end)
+
+MoveTab:Toggle({ Title = "Enable CFrame Speed", Callback = function(state) cframeEnabled = state end })
+MoveTab:Slider({ Title = "CFrame Speed (Stud/sec)", Step = 1, Value = { Min = 1, Max = 150, Default = 5 }, Callback = function(v) speed = v end })
+MoveTab:Input({ Title = "Manual CFrame Speed", Placeholder = "Enter number", Callback = function(txt) local num = tonumber(txt) if num then speed = num end end })
+
 
 -------------------------------------------------
 -- VISUAL TAB (FIXED ESP RESPAWN & LEAVE)
@@ -1644,143 +1712,35 @@ CopyTab:Button({
 })
 
 -------------------------------------------------
--- MISC TAB (FIXED RESPAWN RESET)
+-- MISC TAB (FIXED & RAINBOW GHOST GUI)
 -------------------------------------------------
 local MiscSection = Window:Section({ Title = "Miscellaneous" })
 local MiscTab = MiscSection:Tab({ Title = "Misc", Icon = "solar:settings-bold", IconColor = Purple, IconShape = "Square", Border = true })
 
 -- =========================
--- KILL TOOLS (TARGET & ALL)
+-- FAKE LAG
 -- =========================
-MiscTab:Section({ Title = "Kill Tools (Sword Required)" })
-MiscTab:Paragraph({ Title = "Info", Desc = "Pegang Sword.\nTarget: Support Nama Singkat/Display.\nMetode: Activate + Touch All Parts.", Image = "solar:danger-triangle-bold", Color = "Red" })
-
-local killTargetInput = ""
-local spamKillTargetEnabled = false
-local spamKillAllEnabled = false
-local killTargetToggleRef = nil -- Referensi UI
-local killAllToggleRef = nil -- Referensi UI
-
-MiscTab:Input({ 
-    Title = "Target Name (Display/Username)", 
-    Placeholder = "Contoh: BotReal1, ProPlayer", 
-    Callback = function(txt) 
-        killTargetInput = txt 
-    end 
-})
-
-local function attackTargetFixed(targetChar)
-    local char = LocalPlayer.Character
-    if not char then return end
-    
-    local tool = char:FindFirstChildOfClass("Tool")
-    if not tool or not tool:FindFirstChild("Handle") then return end
-    
-    local handle = tool.Handle
-    local hum = targetChar:FindFirstChild("Humanoid")
-    if not hum or hum.Health <= 0 then return end
-
-    tool:Activate()
-    for _, part in pairs(targetChar:GetChildren()) do
-        if part:IsA("BasePart") then
-            firetouchinterest(handle, part, 0)
-            task.wait()
-            firetouchinterest(handle, part, 1)
-        end
-    end
-end
-
-local function findTargetPlayer(inputName)
-    local lowerInput = string.lower(inputName)
-    local foundPlayers = {}
-    for _, plr in pairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer then
-            if string.lower(plr.Name) == lowerInput or string.find(string.lower(plr.Name), lowerInput) then
-                table.insert(foundPlayers, plr)
-            elseif string.lower(plr.DisplayName) == lowerInput or string.find(string.lower(plr.DisplayName), lowerInput) then
-                table.insert(foundPlayers, plr)
-            end
-        end
-    end
-    return foundPlayers
-end
-
-killTargetToggleRef = MiscTab:Toggle({ 
-    Title = "Spam Kill Target (One Hit)", 
-    Default = false, 
-    Callback = function(state) 
-        spamKillTargetEnabled = state 
-        if state then
-            if killTargetInput == "" then
-                WindUI:Notify({ Title = "Error", Content = "Masukkan nama target!", Duration = 3 })
-                if killTargetToggleRef then killTargetToggleRef:SetState(false) end
-                return
-            end
-            local targets = findTargetPlayer(killTargetInput)
-            if #targets == 0 then
-                WindUI:Notify({ Title = "Error", Content = "Target tidak ditemukan.", Duration = 3 })
-                if killTargetToggleRef then killTargetToggleRef:SetState(false) end
-                return
-            end
-            for _, targetPlr in pairs(targets) do
-                WindUI:Notify({ Title = "Locking Target", Content = string.format("Display: %s | User: %s", targetPlr.DisplayName, targetPlr.Name), Duration = 5 })
-            end
-            task.spawn(function()
-                while spamKillTargetEnabled do
-                    for _, targetPlr in pairs(targets) do
-                        if targetPlr.Character and targetPlr.Character:FindFirstChild("Humanoid") and targetPlr.Character.Humanoid.Health > 0 then
-                            attackTargetFixed(targetPlr.Character)
-                        end
-                    end
-                    task.wait(0.1)
-                end
-            end)
-        end
-    end 
-})
-
-killAllToggleRef = MiscTab:Toggle({ 
-    Title = "Spam Kill All Players (One Hit)", 
-    Default = false, 
-    Callback = function(state) 
-        spamKillAllEnabled = state 
-        if state then
-            WindUI:Notify({ Title = "Kill All", Content = "Activated.", Duration = 3 })
-            task.spawn(function()
-                while spamKillAllEnabled do
-                    for _, plr in pairs(Players:GetPlayers()) do
-                        if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("Humanoid") then
-                            if plr.Character.Humanoid.Health > 0 then
-                                attackTargetFixed(plr.Character)
-                            end
-                        end
-                    end
-                    task.wait(0.3) 
-                end
-            end)
-        end
-    end 
-})
-
-MiscTab:Space()
 MiscTab:Section({ Title = "Fake Lag" })
 local isFakeLagEnabled = false
 task.spawn(function() while true do task.wait() if isFakeLagEnabled then local start = tick() while tick() - start < 0.2 do end end end end)
 MiscTab:Toggle({ Title = "Enable Super Lag", Callback = function(state) isFakeLagEnabled = state WindUI:Notify({ Title = "Fake Lag", Content = state and "Activated" or "Deactivated", Duration = 3 }) end })
 
+-- =========================
+-- INTERACTION
+-- =========================
 MiscTab:Space()
 MiscTab:Section({ Title = "Interaction" })
 local instantInteractEnabled = false local instantInteractConnections = {}
 local function enableInstantInteract() for _, prompt in pairs(workspace:GetDescendants()) do if prompt:IsA("ProximityPrompt") then fireproximityprompt(prompt) end end table.insert(instantInteractConnections, workspace.DescendantAdded:Connect(function(desc) if desc:IsA("ProximityPrompt") then task.wait(0.1) if instantInteractEnabled then fireproximityprompt(desc) end end end)) table.insert(instantInteractConnections, ProximityPromptService.PromptShown:Connect(function(prompt) if instantInteractEnabled then fireproximityprompt(prompt) end end)) end
 local function disableInstantInteract() for _, conn in pairs(instantInteractConnections) do if conn then conn:Disconnect() end end instantInteractConnections = {} end
-MiscTab:Toggle({ Title = "Instant Interact (Auto)", Callback = function(state) instantInteractEnabled = state if state then enableInstantInteract() WindUI:Notify({ Title = "Interact", Content = "Instant Interact Enabled", Duration = 3 }) else disableInstantInteract() WindUI:Notify({ Title = "Interact", Content = "Instant Interact Disabled", Duration = 3 }) end end })
+MiscTab:Toggle({ Title = "Instant Interact ", Callback = function(state) instantInteractEnabled = state if state then enableInstantInteract() WindUI:Notify({ Title = "Interact", Content = "Instant Interact Enabled", Duration = 3 }) else disableInstantInteract() WindUI:Notify({ Title = "Interact", Content = "Instant Interact Disabled", Duration = 3 }) end end })
 
+-- =========================
+-- GHOST MODE SYSTEM
+-- =========================
 MiscTab:Space()
 MiscTab:Section({ Title = "Ghost Mode System" })
 
--- =========================
--- GHOST MODE VARIABLES
--- =========================
 local ghostGuiInstance = nil
 local invis_on = false 
 local invisChair = nil
@@ -1799,7 +1759,7 @@ local function setTransparency(character, transparency)
 end
 
 -- =========================
--- GHOST GUI SETUP
+-- GHOST GUI SETUP (RAINBOW ANIMATION)
 -- =========================
 local function createGhostGui()
     if ghostGuiInstance then return end
@@ -1807,6 +1767,9 @@ local function createGhostGui()
     local ScreenGui = Instance.new("ScreenGui")
     local DragFrame = Instance.new("Frame")
     local GhostButton = Instance.new("TextButton")
+    local UIStroke = Instance.new("UIStroke")
+    local UIGradient = Instance.new("UIGradient")
+    local UICorner = Instance.new("UICorner")
 
     ScreenGui.Name = "GhostGui"
     ScreenGui.ResetOnSpawn = false
@@ -1814,28 +1777,60 @@ local function createGhostGui()
 
     DragFrame.Name = "DragFrame"
     DragFrame.Parent = ScreenGui
-    DragFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    DragFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     DragFrame.BorderSizePixel = 0
     DragFrame.Size = UDim2.new(0, 200, 0, 80)
     DragFrame.Position = UDim2.new(0.6, 0, 0.4, 0) 
     DragFrame.ZIndex = 1
     DragFrame.Active = true
 
+    UICorner.CornerRadius = UDim.new(0, 10)
+    UICorner.Parent = DragFrame
+
+    UIStroke.Parent = DragFrame
+    UIStroke.Thickness = 4 -- Garis tebal sesuai request
+    UIStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    UIStroke.Color = Color3.fromRGB(255, 255, 255)
+
+    UIGradient.Parent = UIStroke
+    UIGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+        ColorSequenceKeypoint.new(0.2, Color3.fromRGB(255, 255, 0)),
+        ColorSequenceKeypoint.new(0.4, Color3.fromRGB(0, 255, 0)),
+        ColorSequenceKeypoint.new(0.6, Color3.fromRGB(0, 255, 255)),
+        ColorSequenceKeypoint.new(0.8, Color3.fromRGB(0, 0, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 255))
+    })
+
     GhostButton.Name = "GhostButton"
     GhostButton.Parent = DragFrame
-    GhostButton.BackgroundColor3 = Color3.fromRGB(150, 50, 150) 
-    GhostButton.Size = UDim2.new(1, 0, 0.5, 0)
-    GhostButton.Position = UDim2.new(0, 0, 0, 0)
-    GhostButton.Font = Enum.Font.SourceSans
+    GhostButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    GhostButton.Size = UDim2.new(0.9, 0, 0.6, 0)
+    GhostButton.Position = UDim2.new(0.05, 0, 0.2, 0)
+    GhostButton.Font = Enum.Font.GothamBold
     GhostButton.Text = "Ghost: OFF"
     GhostButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    GhostButton.TextSize = 20
+    GhostButton.TextSize = 18
     GhostButton.ZIndex = 2
-    GhostButton.Active = true
+
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 8)
+    btnCorner.Parent = GhostButton
 
     ghostGuiInstance = ScreenGui
 
-    -- Manual Drag
+    -- Rainbow Animation Logic
+    task.spawn(function()
+        local rot = 0
+        while true do
+            if not UIGradient or not UIGradient.Parent then break end
+            rot = rot + 2
+            UIGradient.Rotation = rot % 360
+            task.wait(0.02)
+        end
+    end)
+
+    -- Manual Drag (Sesuai script asli)
     DragFrame.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             isDraggingGhost = true
@@ -1853,7 +1848,7 @@ local function createGhostGui()
         end
     end)
 
-    UserInputService.InputChanged:Connect(function(input)
+    game:GetService("UserInputService").InputChanged:Connect(function(input)
         if input == dragInputGhost and isDraggingGhost then
             local delta = input.Position - dragStartGhost
             DragFrame.Position = UDim2.new(startPosGhost.X.Scale, startPosGhost.X.Offset + delta.X, startPosGhost.Y.Scale, startPosGhost.Y.Offset + delta.Y)
@@ -1866,7 +1861,7 @@ local function createGhostGui()
 end
 
 -- =========================
--- GHOST MODE LOGIC
+-- GHOST MODE LOGIC (Original)
 -- =========================
 function toggleGhostLogic(state)
     if state == nil then state = not invis_on end
@@ -1876,7 +1871,6 @@ function toggleGhostLogic(state)
     if state then
         if char and char:FindFirstChild("HumanoidRootPart") then
             local savedpos = char.HumanoidRootPart.CFrame
-         --   WindUI:Notify({ Title = "Ghost Mode", Content = "Activated.", Duration = 3 })
             
             invisChair = Instance.new('Seat', workspace)
             invisChair.Anchored = false
@@ -1892,11 +1886,10 @@ function toggleGhostLogic(state)
             setTransparency(char, 0.5)
             invis_on = true
             
-            if ghostGuiInstance and ghostGuiInstance:FindFirstChild("DragFrame", true) then
-                local btn = ghostGuiInstance.DragFrame:FindFirstChild("GhostButton", true)
+            if ghostGuiInstance then
+                local btn = ghostGuiInstance:FindFirstChild("GhostButton", true)
                 if btn then btn.Text = "Ghost: ON" end
             end
-            
             if ghostToggleRef then ghostToggleRef:SetState(true) end
         end
     else
@@ -1912,16 +1905,13 @@ function toggleGhostLogic(state)
             char.HumanoidRootPart.CFrame = currentGhostPos * CFrame.new(0, 0, 0)
             
             setTransparency(char, 0)
-            
-        --    WindUI:Notify({ Title = "Ghost Mode", Content = "Deactivated.", Duration = 3 })
         end
         invis_on = false
         
-        if ghostGuiInstance and ghostGuiInstance:FindFirstChild("DragFrame", true) then
-            local btn = ghostGuiInstance.DragFrame:FindFirstChild("GhostButton", true)
+        if ghostGuiInstance then
+            local btn = ghostGuiInstance:FindFirstChild("GhostButton", true)
             if btn then btn.Text = "Ghost: OFF" end
         end
-        
         if ghostToggleRef then ghostToggleRef:SetState(false) end
     end
 end
@@ -1930,17 +1920,10 @@ end
 -- AUTO RESET SAAT MATI/RESPAWN
 -- =========================
 LocalPlayer.CharacterAdded:Connect(function()
-    -- Reset Kill Tools
-    spamKillTargetEnabled = false
-    spamKillAllEnabled = false
-    if killTargetToggleRef then killTargetToggleRef:SetState(false) end
-    if killAllToggleRef then killAllToggleRef:SetState(false) end
-    
-    -- Reset Ghost Mode
     invis_on = false
     invisChair = nil
-    if ghostGuiInstance and ghostGuiInstance:FindFirstChild("DragFrame", true) then
-        local btn = ghostGuiInstance.DragFrame:FindFirstChild("GhostButton", true)
+    if ghostGuiInstance then
+        local btn = ghostGuiInstance:FindFirstChild("GhostButton", true)
         if btn then btn.Text = "Ghost: OFF" end
     end
     if ghostToggleRef then ghostToggleRef:SetState(false) end
@@ -1962,3 +1945,4 @@ ghostToggleRef = MiscTab:Toggle({
 })
 
 MiscTab:Paragraph({ Title = "Ghost Mode Info", Desc = "1. ON: Karakter freeze.\n2. OFF: Teleport Sequence.\n3. Noclip aktif otomatis saat teleport.", Image = "solar:ghost-bold", Color = "Purple" })
+ 
