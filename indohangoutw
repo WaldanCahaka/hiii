@@ -25,7 +25,7 @@ local UnlockTeleport = false
 local AntiAdminEnabled = false
 local AntiAFKEnabled = false
 
--- Mega-Blacklist Data (idjdudnnuemeimd sudah masuk)
+-- Mega-Blacklist Data
 local Blacklist = {
     "idjdudnnuemeimd", "ZuVoidGT", "RYIIN100", "16Broww", "POISENIII", 
     "Rainbow_Sunny10", "ChoChoTheChocoBoo", "P23Savior", "Issyxuue", 
@@ -45,7 +45,7 @@ local SelectedRod = "Party Rod"
 -- Executor Detection
 local ExecutorName = (identifyexecutor and identifyexecutor()) or "Unknown"
 
--- */ 1. ENGINE BAR MODE (LOCKED) - ASLI (TIDAK DIUBAH) /* --
+-- */ 1. ENGINE BAR MODE (LOCKED) - ASLI /* --
 RunService.RenderStepped:Connect(function()
     if BarMode == "Normal" then return end
     pcall(function()
@@ -69,10 +69,10 @@ RunService.RenderStepped:Connect(function()
     end)
 end)
 
--- */ 2. PROTECTION LOGIC /* --
+-- */ 2. PROTECTION & ANTI-AFK /* --
 local function KillConnection(targetName)
     if not AntiAdminEnabled then return end
-    LocalPlayer:Kick("\n[REU PROTEKSI]\nAdmin Terdeteksi: @" .. targetName .. "\nKoneksi diputus otomatis!")
+    LocalPlayer:Kick("\n[REU PROTEKSI]\nAdmin Terdeteksi: @" .. targetName .. "\nKoneksi diputus!")
     task.wait(0.1)
     game:Shutdown() 
 end
@@ -87,7 +87,6 @@ local function CheckBlacklist(player)
     end
 end
 
--- Anti-AFK Logic
 LocalPlayer.Idled:Connect(function()
     if AntiAFKEnabled then
         VirtualUser:CaptureController()
@@ -95,7 +94,7 @@ LocalPlayer.Idled:Connect(function()
     end
 end)
 
--- */ 3. AUTO CONFIRM (BYPASS GUI) - ASLI (TIDAK DIUBAH) /* --
+-- */ 3. AUTO CONFIRM (BYPASS GUI) - ASLI /* --
 SellConfirmRemote.OnClientInvoke = function() return "success" end
 BuyRodConfirmRemote.OnClientInvoke = function()
     task.spawn(function()
@@ -113,12 +112,15 @@ local Window = WindUI:CreateWindow({
     OpenButton = { Enabled = true, Draggable = true }
 })
 
+-- AUTO SELECT THEME CRIMSON
+WindUI:SetTheme("Crimson")
+
 local MainTab = Window:Tab({ Title = "Main", Icon = "solar:home-2-bold" })
 local ShopTab = Window:Tab({ Title = "Shop", Icon = "solar:shop-bold" })
 local SettingTab = Window:Tab({ Title = "Setting", Icon = "solar:settings-bold" })
 
--- --- TAB MAIN (ASLI) ---
-local RodParagraph = MainTab:Paragraph({ Title = "Rod Detector", Desc = "Scanning...", Image = "solar:magnifer-bold" })
+-- --- TAB MAIN ---
+local RodParagraph = MainTab:Paragraph({ Title = "Rod Detector", Desc = "Scanning for rod...", Image = "solar:magnifer-bold" })
 MainTab:Toggle({ Title = "Auto Fishing", Value = false, Callback = function(s) AutoFishingEnabled = s end })
 MainTab:Dropdown({ Title = "Bar Mode", Values = {"Normal", "Manual Slider", "Bar Ngikutin Ikan", "Full Bar"}, Value = "Normal", Callback = function(o) BarMode = o end })
 MainTab:Slider({ Title = "Manual Bar Size", Step = 0.05, Value = { Min = 0.1, Max = 1, Default = 0.5 }, Callback = function(v) ManualBarSize = v end })
@@ -141,17 +143,46 @@ ShopTab:Button({ Title = "Purchase Selected Rod", Callback = function() RodShopR
 SettingTab:Toggle({ Title = "Anti Admin (Mega-Blacklist)", Value = false, Callback = function(s) AntiAdminEnabled = s end })
 SettingTab:Toggle({ Title = "Anti-AFK (No Kick)", Value = false, Callback = function(s) AntiAFKEnabled = s end })
 SettingTab:Toggle({ Title = "Unlock Teleport All", Value = false, Callback = function(s) UnlockTeleport = s end })
+
 SettingTab:Dropdown({
-    Title = "Select Theme",
-    Values = {"Dark Blue", "Blood Red", "Emerald Green", "Purple Night"},
-    Callback = function(t)
-        local colors = {["Dark Blue"] = Color3.fromRGB(0,102,255), ["Blood Red"] = Color3.fromRGB(255,0,0), ["Emerald Green"] = Color3.fromRGB(0,255,100), ["Purple Night"] = Color3.fromRGB(170,0,255)}
-        Window:SetTheme({ Accent = colors[t] })
+    Title = "Theme Changer",
+    Values = { "Dark", "Light", "Rose", "Plant", "Red", "Indigo", "Sky", "Violet", "Amber", "Emerald", "Midnight", "Crimson", "Monokai Pro", "Cotton Candy", "Rainbow" },
+    Value = "Crimson", -- Default Dropdown UI
+    Multi = false,
+    AllowNone = true,
+    Callback = function(option) 
+        WindUI:SetTheme(tostring(option))
     end
 })
+
 local IkanParagraph = SettingTab:Paragraph({ Title = "Stats", Desc = "Ikan: 0" })
 
 -- */ 5. CONNECTORS & LOOPS /* --
+
+-- FIX ROD DETECTOR: Cek alat pancing di tangan secara akurat
+task.spawn(function()
+    while task.wait(0.5) do
+        local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildWhichIsA("Tool")
+        if tool and (string.find(string.lower(tool.Name), "rod") or tool:FindFirstChild("Bobber")) then
+            RodParagraph:SetDesc("Detected: " .. tool.Name)
+        else
+            RodParagraph:SetDesc("Detected: None (Please hold your rod)")
+        end
+        
+        -- Update Stats Ikan
+        local count = 0
+        local bp = LocalPlayer:FindFirstChild("Backpack")
+        if bp then 
+            for _, item in pairs(bp:GetChildren()) do 
+                if string.find(string.lower(item.Name), "ikan") or string.find(string.lower(item.Name), "fish") then 
+                    count = count + 1 
+                end 
+            end 
+        end
+        IkanParagraph:SetDesc("Ikan: " .. tostring(count))
+    end
+end)
+
 Players.PlayerAdded:Connect(function(player)
     if AntiAdminEnabled then CheckBlacklist(player) end
 end)
@@ -178,15 +209,5 @@ end
 
 LocalPlayer.Character.ChildAdded:Connect(function(c) if AutoFishingEnabled and c:IsA("Tool") and string.find(string.lower(c.Name), "rod") then task.wait(0.3); InstantThrow() end end)
 PlayerGui.DescendantRemoving:Connect(function(d) if AutoFishingEnabled and (d.Name == "WhiteBar" or d.Name == "Reeling") then task.wait(1.1); InstantThrow() end end)
-
-task.spawn(function()
-    while true do
-        local count = 0
-        local bp = LocalPlayer:FindFirstChild("Backpack")
-        if bp then for _, item in pairs(bp:GetChildren()) do if string.find(string.lower(item.Name), "ikan") or string.find(string.lower(item.Name), "fish") then count = count + 1 end end end
-        IkanParagraph:SetDesc("Ikan: " .. tostring(count))
-        task.wait(0.5)
-    end
-end)
 
 Window:SelectTab(MainTab)
