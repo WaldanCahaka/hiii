@@ -1,0 +1,208 @@
+-- [[ REU TERMINAL: WZXX CUSTOM TITLE VERSION ]] --
+-- Update: Title WzxX | Nama Executor | Indo Hangout
+-- Arsitek Utama: WzxX
+
+local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
+
+-- Services
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local RunService = game:GetService("RunService")
+
+-- Remotes
+local RodRemote = ReplicatedStorage:WaitForChild("Events"):WaitForChild("RemoteEvent"):WaitForChild("Rod")
+local SellRemote = ReplicatedStorage:WaitForChild("Events"):WaitForChild("RemoteFunction"):WaitForChild("SellFish")
+local SellConfirmRemote = ReplicatedStorage:WaitForChild("Events"):WaitForChild("RemoteFunction"):WaitForChild("SellFishConfirm")
+local RodShopRemote = ReplicatedStorage:WaitForChild("Events"):WaitForChild("RemoteFunction"):WaitForChild("RodShop")
+local BuyRodConfirmRemote = ReplicatedStorage:WaitForChild("Events"):WaitForChild("RemoteFunction"):WaitForChild("BuyRodConfirm")
+
+-- Variables
+local AutoFishingEnabled = false
+local UnlockTeleport = false
+local AntiAdminEnabled = false
+
+-- Mega-Blacklist Data
+local Blacklist = {
+    "idjdudnnuemeimd", "ZuVoidGT", "RYIIN100", "16Broww", "POISENIII", 
+    "Rainbow_Sunny10", "ChoChoTheChocoBoo", "P23Savior", "Issyxuue", 
+    "na_iaa5", "danskuyxd", "Bithond", "kadedeww", "cerrerreeree", 
+    "yuka66", "CLaavooo", "Mimz_1302", "teteyourb4e", "axagaaa", 
+    "VloowZ", "AngelsNeedHeaven", "SQKanyut", "MinzuIDH", "dumbziee", 
+    "asrev11", "fprsyllaa", "baroonsteinfeld", "naerynnnuv", "2hizo", 
+    "SakuraKiyu", "IMightBeUgly", "vakkamz7", "vinnyo_opy", 
+    "Alergi_PENINGGI", "tiktik_4924", "Xxmoon_lightxX5890"
+}
+
+local BarMode = "Normal" 
+local ManualBarSize = 0.5 
+local SelectedWeight = "All under 50 Kg"
+local SelectedRod = "Party Rod"
+
+-- Executor Detection
+local ExecutorName = (identifyexecutor and identifyexecutor()) or "Unknown"
+
+-- */ 1. ENGINE BAR MODE (LOCKED) /* --
+RunService.RenderStepped:Connect(function()
+    if BarMode == "Normal" then return end
+    pcall(function()
+        for _, gui in pairs(PlayerGui:GetChildren()) do
+            local wb = gui:FindFirstChild("WhiteBar", true)
+            if wb and wb.Visible then
+                if BarMode == "Manual Slider" then
+                    wb.Size = UDim2.new(ManualBarSize, 0, wb.Size.Y.Scale, wb.Size.Y.Offset)
+                elseif BarMode == "Bar Ngikutin Ikan" then
+                    local rb = wb.Parent:FindFirstChild("RedBar") or wb.Parent:FindFirstChild("TargetBar")
+                    wb.Size = UDim2.new(0.3, 0, wb.Size.Y.Scale, wb.Size.Y.Offset)
+                    if rb then
+                        local pos = rb.Position.X.Scale + (rb.Size.X.Scale / 2) - (wb.Size.X.Scale / 2)
+                        wb.Position = UDim2.new(pos, wb.Position.X.Offset, wb.Position.Y.Scale, wb.Position.Y.Offset)
+                    end
+                elseif BarMode == "Full Bar" then
+                    wb.Size = UDim2.new(1, 0, wb.Size.Y.Scale, wb.Size.Y.Offset)
+                end
+            end
+        end
+    end)
+end)
+
+-- */ 2. PROTECTION & TELEPORT /* --
+local function KillConnection(targetName)
+    if not AntiAdminEnabled then return end
+    warn("🚨 [REU SAFETY]: TARGET TERDETEKSI: " .. targetName)
+    -- Kick User
+    LocalPlayer:Kick("\n[REU PROTEKSI]\nAdmin/Target: " .. targetName .. " Terdeteksi!\nAuto-Kick & Shutdown aktif.")
+    task.wait(0.1)
+    -- Shutdown Game (Jika executor support)
+    game:Shutdown() 
+end
+
+local function CheckBlacklist(player)
+    if not AntiAdminEnabled then return end
+    for _, name in pairs(Blacklist) do
+        if player.Name == name or player.DisplayName == name then
+            KillConnection(player.Name)
+        end
+    end
+end
+
+RunService.Heartbeat:Connect(function()
+    if UnlockTeleport then
+        pcall(function()
+            local PlayerInfo = PlayerGui:FindFirstChild("PlayerInfo", true)
+            if PlayerInfo and PlayerInfo:FindFirstChild("Teleport") then PlayerInfo.Teleport.Visible = true end
+            for _, p in pairs(Players:GetPlayers()) do p:SetAttribute("TeleportDisabled", false) end
+        end)
+    end
+end)
+
+-- */ 3. AUTO CONFIRM (BYPASS GUI) /* --
+SellConfirmRemote.OnClientInvoke = function() return "success" end
+BuyRodConfirmRemote.OnClientInvoke = function()
+    task.spawn(function()
+        local BR = PlayerGui:FindFirstChild("BuyRodConfirm")
+        if BR then BR.Enabled = false end
+    end)
+    return "success"
+end
+
+-- */ 4. UI INITIALIZATION /* --
+local Window = WindUI:CreateWindow({
+    Title = "WzxX | " .. ExecutorName .. " | Indo Hangout",
+    Icon = "solar:bolt-bold",
+    Folder = "WzxX_Scripts",
+    OpenButton = { Enabled = true, Draggable = true }
+})
+
+local MainTab = Window:Tab({ Title = "Main", Icon = "solar:home-2-bold" })
+local ShopTab = Window:Tab({ Title = "Shop", Icon = "solar:shop-bold" })
+local SettingTab = Window:Tab({ Title = "Setting", Icon = "solar:settings-bold" })
+
+-- --- TAB MAIN ---
+local RodParagraph = MainTab:Paragraph({ Title = "Rod Detector", Desc = "Scanning...", Image = "solar:magnifer-bold" })
+MainTab:Toggle({ Title = "Auto Fishing", Value = false, Callback = function(s) AutoFishingEnabled = s end })
+MainTab:Dropdown({ Title = "Bar Mode", Values = {"Normal", "Manual Slider", "Bar Ngikutin Ikan", "Full Bar"}, Value = "Normal", Callback = function(o) BarMode = o end })
+MainTab:Slider({ Title = "Manual Bar Size", Step = 0.05, Value = { Min = 0.1, Max = 1, Default = 0.5 }, Callback = function(v) ManualBarSize = v end })
+
+-- --- TAB SHOP ---
+ShopTab:Button({ Title = "Sell All Fish", Callback = function() SellRemote:InvokeServer("SellFish", "Sell All") end })
+ShopTab:Dropdown({ Title = "Filter Weight", Values = {"All under 50 Kg", "All under 100 Kg", "All under 400 Kg", "All under 600 Kg"}, Value = "All under 50 Kg", Callback = function(v) SelectedWeight = v end })
+ShopTab:Button({ Title = "Sell Selected Filter", Callback = function() SellRemote:InvokeServer("SellFish", SelectedWeight) end })
+
+ShopTab:Paragraph({ Title = "Rod Shop", Desc = "Instant buy rods" })
+ShopTab:Dropdown({
+    Title = "Select Rod",
+    Values = {"Duck Rod", "Earth Rod", "Feather Rod", "Flowers Rod", "Party Rod", "Piranha Rod", "Planet Rod", "Shark Rod", "Thermo Rod", "Trisula Rod", "Wave Rod"},
+    Value = "Party Rod",
+    Callback = function(v) SelectedRod = v end
+})
+ShopTab:Button({ Title = "Purchase Selected Rod", Callback = function() RodShopRemote:InvokeServer("Buy", SelectedRod) end })
+
+-- --- TAB SETTING ---
+SettingTab:Toggle({ 
+    Title = "Anti Admin (Kick + Shutdown)", 
+    Value = false, 
+    Callback = function(s) 
+        AntiAdminEnabled = s 
+        if s then
+            for _, p in pairs(Players:GetPlayers()) do
+                if p ~= LocalPlayer then CheckBlacklist(p) end
+            end
+        end
+    end 
+})
+SettingTab:Toggle({ Title = "Unlock Teleport All", Value = false, Callback = function(s) UnlockTeleport = s end })
+SettingTab:Dropdown({
+    Title = "Select Theme",
+    Values = {"Dark Blue", "Blood Red", "Emerald Green", "Purple Night"},
+    Callback = function(t)
+        local colors = {["Dark Blue"] = Color3.fromRGB(0,102,255), ["Blood Red"] = Color3.fromRGB(255,0,0), ["Emerald Green"] = Color3.fromRGB(0,255,100), ["Purple Night"] = Color3.fromRGB(170,0,255)}
+        Window:SetTheme({ Accent = colors[t] })
+    end
+})
+local IkanParagraph = SettingTab:Paragraph({ Title = "Stats", Desc = "Ikan: 0" })
+
+-- */ 5. CONNECTORS & EVENTS /* --
+Players.PlayerAdded:Connect(CheckBlacklist)
+
+task.spawn(function()
+    while task.wait(0.5) do -- Scan lebih cepat (setiap 0.5 detik)
+        if AntiAdminEnabled then
+            for _, p in pairs(Players:GetPlayers()) do
+                if p ~= LocalPlayer then CheckBlacklist(p) end
+            end
+        end
+    end
+end)
+
+local function InstantThrow()
+    if not AutoFishingEnabled then return end
+    pcall(function()
+        local Rod = LocalPlayer.Character:FindFirstChildWhichIsA("Tool")
+        if Rod and string.find(string.lower(Rod.Name), "rod") then
+            RodRemote:FireServer("Throw", Rod, workspace:WaitForChild("Terrain"))
+        end
+    end)
+end
+
+LocalPlayer.Character.ChildAdded:Connect(function(c) if AutoFishingEnabled and c:IsA("Tool") and string.find(string.lower(c.Name), "rod") then task.wait(0.3); InstantThrow() end end)
+PlayerGui.DescendantRemoving:Connect(function(d) if AutoFishingEnabled and (d.Name == "WhiteBar" or d.Name == "Reeling") then task.wait(1.1); InstantThrow() end end)
+
+task.spawn(function()
+    while true do
+        local RodObj = nil
+        if LocalPlayer.Character then
+            local tool = LocalPlayer.Character:FindFirstChildWhichIsA("Tool")
+            if tool and string.find(string.lower(tool.Name), "rod") then RodObj = tool end
+        end
+        RodParagraph:SetDesc(RodObj and "Detected: " .. RodObj.Name or "Detected: None")
+        local count = 0
+        local bp = LocalPlayer:FindFirstChild("Backpack")
+        if bp then for _, item in pairs(bp:GetChildren()) do if string.find(string.lower(item.Name), "ikan") or string.find(string.lower(item.Name), "fish") then count = count + 1 end end end
+        IkanParagraph:SetDesc("Ikan: " .. tostring(count))
+        task.wait(0.5)
+    end
+end)
+
+Window:SelectTab(MainTab)
