@@ -38,8 +38,11 @@ local Blacklist = {
     "VloowZ", "AngelsNeedHeaven", "SQKanyut", "MinzuIDH", "dumbziee", 
     "asrev11", "fprsyllaa", "baroonsteinfeld", "naerynnnuv", "2hizo", 
     "SakuraKiyu", "IMightBeUgly", "vakkamz7", "vinnyo_opy", 
-    "Alergi_PENINGGI", "tiktik_4924", "Xxmoon_lightxX5890"
+    "Alergi_PENINGGI", "tiktik_4924", "Xxmoon_lightxX5890",
+    "Bareee04", "BerlinLawden", "Ewinnn29", "norahclouds", 
+    "ItsKaminari", "FasaaaIsHere"
 }
+
 
 local BarMode = "Normal" 
 local ManualBarSize = 0.5 
