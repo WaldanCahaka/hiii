@@ -10,6 +10,7 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local RunService = game:GetService("RunService")
+local VirtualUser = game:GetService("VirtualUser")
 
 -- Remotes
 local RodRemote = ReplicatedStorage:WaitForChild("Events"):WaitForChild("RemoteEvent"):WaitForChild("Rod")
@@ -22,10 +23,11 @@ local BuyRodConfirmRemote = ReplicatedStorage:WaitForChild("Events"):WaitForChil
 local AutoFishingEnabled = false
 local UnlockTeleport = false
 local AntiAdminEnabled = false
+local AntiAFKEnabled = false
 
 -- Mega-Blacklist Data
 local Blacklist = {
-    "idjdudnnuemeimd", "ZuVoidGT", "RYIIN100", "16Broww", "POISENIII", 
+    "Slayermmw9", "ZuVoidGT", "RYIIN100", "16Broww", "POISENIII", 
     "Rainbow_Sunny10", "ChoChoTheChocoBoo", "P23Savior", "Issyxuue", 
     "na_iaa5", "danskuyxd", "Bithond", "kadedeww", "cerrerreeree", 
     "yuka66", "CLaavooo", "Mimz_1302", "teteyourb4e", "axagaaa", 
@@ -43,7 +45,7 @@ local SelectedRod = "Party Rod"
 -- Executor Detection
 local ExecutorName = (identifyexecutor and identifyexecutor()) or "Unknown"
 
--- */ 1. ENGINE BAR MODE (LOCKED) /* --
+-- */ 1. ENGINE BAR MODE (LOCKED) - TETAP SAMA /* --
 RunService.RenderStepped:Connect(function()
     if BarMode == "Normal" then return end
     pcall(function()
@@ -67,14 +69,11 @@ RunService.RenderStepped:Connect(function()
     end)
 end)
 
--- */ 2. PROTECTION & TELEPORT /* --
+-- */ 2. PROTECTION & ANTI-AFK /* --
 local function KillConnection(targetName)
     if not AntiAdminEnabled then return end
-    warn("🚨 [REU SAFETY]: TARGET TERDETEKSI: " .. targetName)
-    -- Kick User
-    LocalPlayer:Kick("\n[REU PROTEKSI]\nAdmin/Target: " .. targetName .. " Terdeteksi!\nAuto-Kick & Shutdown aktif.")
+    LocalPlayer:Kick("\n[REU PROTEKSI]\nTarget: " .. targetName .. " Terdeteksi!\nAuto-Kick aktif.")
     task.wait(0.1)
-    -- Shutdown Game (Jika executor support)
     game:Shutdown() 
 end
 
@@ -87,6 +86,14 @@ local function CheckBlacklist(player)
     end
 end
 
+-- Anti-AFK Logic
+LocalPlayer.Idled:Connect(function()
+    if AntiAFKEnabled then
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new())
+    end
+end)
+
 RunService.Heartbeat:Connect(function()
     if UnlockTeleport then
         pcall(function()
@@ -97,7 +104,7 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- */ 3. AUTO CONFIRM (BYPASS GUI) /* --
+-- */ 3. AUTO CONFIRM (BYPASS GUI) - TETAP SAMA /* --
 SellConfirmRemote.OnClientInvoke = function() return "success" end
 BuyRodConfirmRemote.OnClientInvoke = function()
     task.spawn(function()
@@ -119,13 +126,13 @@ local MainTab = Window:Tab({ Title = "Main", Icon = "solar:home-2-bold" })
 local ShopTab = Window:Tab({ Title = "Shop", Icon = "solar:shop-bold" })
 local SettingTab = Window:Tab({ Title = "Setting", Icon = "solar:settings-bold" })
 
--- --- TAB MAIN ---
+-- --- TAB MAIN (TETAP SAMA) ---
 local RodParagraph = MainTab:Paragraph({ Title = "Rod Detector", Desc = "Scanning...", Image = "solar:magnifer-bold" })
 MainTab:Toggle({ Title = "Auto Fishing", Value = false, Callback = function(s) AutoFishingEnabled = s end })
 MainTab:Dropdown({ Title = "Bar Mode", Values = {"Normal", "Manual Slider", "Bar Ngikutin Ikan", "Full Bar"}, Value = "Normal", Callback = function(o) BarMode = o end })
 MainTab:Slider({ Title = "Manual Bar Size", Step = 0.05, Value = { Min = 0.1, Max = 1, Default = 0.5 }, Callback = function(v) ManualBarSize = v end })
 
--- --- TAB SHOP ---
+-- --- TAB SHOP (TETAP SAMA) ---
 ShopTab:Button({ Title = "Sell All Fish", Callback = function() SellRemote:InvokeServer("SellFish", "Sell All") end })
 ShopTab:Dropdown({ Title = "Filter Weight", Values = {"All under 50 Kg", "All under 100 Kg", "All under 400 Kg", "All under 600 Kg"}, Value = "All under 50 Kg", Callback = function(v) SelectedWeight = v end })
 ShopTab:Button({ Title = "Sell Selected Filter", Callback = function() SellRemote:InvokeServer("SellFish", SelectedWeight) end })
@@ -140,18 +147,8 @@ ShopTab:Dropdown({
 ShopTab:Button({ Title = "Purchase Selected Rod", Callback = function() RodShopRemote:InvokeServer("Buy", SelectedRod) end })
 
 -- --- TAB SETTING ---
-SettingTab:Toggle({ 
-    Title = "Anti Admin (Kick + Shutdown)", 
-    Value = false, 
-    Callback = function(s) 
-        AntiAdminEnabled = s 
-        if s then
-            for _, p in pairs(Players:GetPlayers()) do
-                if p ~= LocalPlayer then CheckBlacklist(p) end
-            end
-        end
-    end 
-})
+SettingTab:Toggle({ Title = "Anti Admin (Kick+Shutdown)", Value = false, Callback = function(s) AntiAdminEnabled = s end })
+SettingTab:Toggle({ Title = "Anti-AFK (No Kick)", Value = false, Callback = function(s) AntiAFKEnabled = s end })
 SettingTab:Toggle({ Title = "Unlock Teleport All", Value = false, Callback = function(s) UnlockTeleport = s end })
 SettingTab:Dropdown({
     Title = "Select Theme",
@@ -167,7 +164,7 @@ local IkanParagraph = SettingTab:Paragraph({ Title = "Stats", Desc = "Ikan: 0" }
 Players.PlayerAdded:Connect(CheckBlacklist)
 
 task.spawn(function()
-    while task.wait(0.5) do -- Scan lebih cepat (setiap 0.5 detik)
+    while task.wait(0.5) do 
         if AntiAdminEnabled then
             for _, p in pairs(Players:GetPlayers()) do
                 if p ~= LocalPlayer then CheckBlacklist(p) end
@@ -176,6 +173,7 @@ task.spawn(function()
     end
 end)
 
+-- Logika Auto Fishing (TETAP SAMA)
 local function InstantThrow()
     if not AutoFishingEnabled then return end
     pcall(function()
