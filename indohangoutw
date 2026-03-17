@@ -78,7 +78,7 @@ local Blacklist = {
     "jank_1403", "Zelia1025", "zeovlyy", "norahclouds",
     "ItsKaminari", "TrustyShiki", "Bareee04", "BerlinLawden",
     "ikenlope27", "antonioekobar", "LoPaws_53",
-    "ethyreaa", "raelizme", "DAXAJA0"
+    "ethyreaa", "raelizme", "DAXAJA0", "Ewinnn29"
 }
 
 local BarMode = "Normal" 
@@ -262,14 +262,6 @@ NameTagSection:Toggle({
     Value = false, 
     Callback = function(s) 
         SetMyBadge("Vip", s)
-    end 
-})
-
-NameTagSection:Toggle({ 
-    Title = "Get Donation Badge", 
-    Value = false, 
-    Callback = function(s) 
-        SetMyBadge("Donation", s)
     end 
 })
 
@@ -564,53 +556,69 @@ Players.PlayerRemoving:Connect(function(player)
     espInstance:removeEsp(player)
 end)
 
+-- SERVICES (WAJIB)
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+
+-- GLOBAL VAR
+local cframeEnabled = false
+local speed = 5
+local customWalkspeed = 16
+local noclipBypassActive = false
+local speedBypassActive = false
+local infJumpEnabled = false
+
 -- -- --- TAB 1: MOVEMENT (FIXED LOGIC) --- --
 local MovementTab = Window:Tab({ Title = "Movement", Icon = "solar:walking-bold" })
+local MoveTab = MovementTab
 local WaterMoveSection = MovementTab:Section({ Title = "Water Movement", Side = "Left" })
 
--- Logic Variables (Internal)
+-- Logic Variables
 local WaterPart = nil
 
--- 1. Anti-Swim Logic (Deep Walk)
+-- =========================================
+-- ANTI SWIM
+-- =========================================
 WaterMoveSection:Toggle({ 
     Title = "Anti-Swim (Deep Walk)", 
     Value = false, 
     Callback = function(s) 
         AntiSwimEnabled = s 
-        local Player = game:GetService("Players").LocalPlayer
         
         if AntiSwimEnabled then
             task.spawn(function()
                 while AntiSwimEnabled do
-                    local char = Player.Character
+                    local char = LocalPlayer.Character
                     local hum = char and char:FindFirstChild("Humanoid")
+
                     if hum then
-                        -- Matikan state berenang
                         hum:SetStateEnabled(Enum.HumanoidStateType.Swimming, false)
-                        
-                        -- Paksa lari kalau nyangkut di state berenang
+
                         if hum:GetState() == Enum.HumanoidStateType.Swimming then
                             hum:ChangeState(Enum.HumanoidStateType.Running)
                         end
-                        
-                        -- Pemberat Fisik (Density Tinggi)
+
                         for _, v in pairs(char:GetChildren()) do
                             if v:IsA("BasePart") then
                                 v.CustomPhysicalProperties = PhysicalProperties.new(100, 0.3, 0.5)
                             end
                         end
                     end
-                    task.wait(0.1)
+
+                    task.wait(0.15)
                 end
             end)
         else
-            -- RESET
-            local char = Player.Character
+            local char = LocalPlayer.Character
             local hum = char and char:FindFirstChild("Humanoid")
+
             if hum then
                 hum:SetStateEnabled(Enum.HumanoidStateType.Swimming, true)
                 hum:ChangeState(Enum.HumanoidStateType.GettingUp)
             end
+
             if char then
                 for _, v in pairs(char:GetChildren()) do
                     if v:IsA("BasePart") then
@@ -622,51 +630,160 @@ WaterMoveSection:Toggle({
     end 
 })
 
--- 2. Walk on Water Logic (Solid Platform)
+-- =========================================
+-- WALK ON WATER
+-- =========================================
 WaterMoveSection:Toggle({ 
     Title = "Walk on Water (Solid)", 
     Value = false, 
     Callback = function(s) 
         WalkOnWaterEnabled = s 
-        local Player = game:GetService("Players").LocalPlayer
         
         if WalkOnWaterEnabled then
-            -- Create Invisible Floor
             WaterPart = Instance.new("Part")
-            WaterPart.Name = "WzxX_WaterFloor"
-            WaterPart.Size = Vector3.new(10, 1, 10)
+            WaterPart.Size = Vector3.new(10,1,10)
             WaterPart.Transparency = 1
             WaterPart.Anchored = true
+            WaterPart.CanCollide = false
             WaterPart.Parent = workspace
-            
+
             task.spawn(function()
                 while WalkOnWaterEnabled do
-                    local char = Player.Character
+                    local char = LocalPlayer.Character
                     local root = char and char:FindFirstChild("HumanoidRootPart")
-                    
+
                     if root then
-                        -- Deteksi Material di bawah kaki
-                        local ray = Ray.new(root.Position, Vector3.new(0, -10, 0))
-                        local hit, pos, norm, mat = workspace:FindPartOnRayWithIgnoreList(ray, {char, WaterPart})
-                        
-                        if mat == Enum.Material.Water then
-                            -- Pindahkan balok ke permukaan air
-                            WaterPart.CFrame = CFrame.new(root.Position.X, pos.Y - 0.5, root.Position.Z)
+                        local ray = workspace:Raycast(root.Position, Vector3.new(0,-12,0))
+                        if ray and ray.Material == Enum.Material.Water then
+                            WaterPart.CFrame = CFrame.new(root.Position.X, ray.Position.Y - 0.5, root.Position.Z)
                             WaterPart.CanCollide = true
                         else
                             WaterPart.CanCollide = false
                         end
                     end
-                    task.wait()
+
+                    task.wait(0.03)
                 end
             end)
         else
-            -- Cleanup
             if WaterPart then
                 WaterPart:Destroy()
                 WaterPart = nil
             end
         end
+    end 
+})
+
+-- =========================================
+-- GHOST ENGINE
+-- =========================================
+RunService.Heartbeat:Connect(function()
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChild("Humanoid")
+    if not hrp or not hum then return end
+
+    -- Noclip
+    if noclipBypassActive then
+        for _, part in pairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    end
+
+    -- Speed System
+    if (speedBypassActive or cframeEnabled) and hum.MoveDirection.Magnitude > 0 then
+        local targetSpeed = speedBypassActive and customWalkspeed or (16 + speed)
+
+        local moveVel = hum.MoveDirection * targetSpeed
+        hrp.Velocity = Vector3.new(moveVel.X, hrp.Velocity.Y, moveVel.Z)
+
+        hrp.CFrame = hrp.CFrame:Lerp(hrp.CFrame + (hum.MoveDirection * 0.1), 0.5)
+
+        hum.WalkSpeed = 16
+    else
+        hum.WalkSpeed = 16
+    end
+end)
+
+-- =========================================
+-- UI CONTROL
+-- =========================================
+MoveTab:Input({ 
+    Title = "Set WalkSpeed Value", 
+    Callback = function(txt) 
+        local num = tonumber(txt)
+        if num then customWalkspeed = num end 
+    end 
+})
+
+MoveTab:Slider({ 
+    Title = "WalkSpeed Slider", 
+    Step = 1, 
+    Value = { Min = 16, Max = 150, Default = 16 }, 
+    Callback = function(v) customWalkspeed = v end 
+})
+
+MoveTab:Toggle({ 
+    Title = "WalkSpeed Bypass", 
+    Callback = function(state) 
+        speedBypassActive = state
+    end 
+})
+
+MoveTab:Toggle({ 
+    Title = "Noclip", 
+    Callback = function(state) 
+        noclipBypassActive = state
+        if not state then
+            local char = LocalPlayer.Character
+            if char then
+                for _, p in pairs(char:GetDescendants()) do
+                    if p:IsA("BasePart") then p.CanCollide = true end
+                end
+            end
+        end
+    end 
+})
+
+MoveTab:Toggle({
+    Title = "Infinite Jump",
+    Callback = function(state)
+        infJumpEnabled = state
+    end
+})
+
+UserInputService.JumpRequest:Connect(function()
+    if infJumpEnabled then
+        local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
+        if hum then
+            hum:ChangeState(Enum.HumanoidStateType.Jumping)
+        end
+    end
+end)
+
+MoveTab:Toggle({ 
+    Title = "Enable CFrame Speed", 
+    Callback = function(state) 
+        cframeEnabled = state 
+    end 
+})
+
+MoveTab:Slider({ 
+    Title = "CFrame Speed", 
+    Step = 1, 
+    Value = { Min = 1, Max = 150, Default = 5 }, 
+    Callback = function(v) 
+        speed = v 
+    end 
+})
+
+MoveTab:Input({ 
+    Title = "Manual CFrame Speed", 
+    Callback = function(txt) 
+        local num = tonumber(txt) 
+        if num then speed = num end 
     end 
 })
 
@@ -694,53 +811,49 @@ SettingTab:Paragraph({
     Content = "Fitur pelindung otomatis jika ada Admin atau Staff yang masuk ke server." 
 })
 
--- -- --- */ SETTINGS: ANTI-STAFF PROTECTION /* --- --
+-- -- --- */ SETTINGS: ANTI-STAFF PROTECTION (ULTRA ACTIVE) /* --- --
 local Players = game:GetService("Players")
 local localPlayer = Players.LocalPlayer
 
--- Daftar nama badge yang dicurigai
+-- Daftar nama badge yang haram dilihat
 local targetBadges = {"HeadAdmin", "Sponsored", "Developer", "Admin"}
 
--- Fungsi Scan (Hanya jalan kalau AntiAdminEnabled == true)
-local function checkAndKick(player)
-    -- Jangan cek diri sendiri
-    if player == localPlayer then return end
+-- Fungsi Eksekusi Kick (Hanya untuk diri sendiri saat staff terdeteksi)
+local function safetyKick(staffName, badgeName)
+    localPlayer:Kick("\n[WzxX SECURITY]\nEmergency Exit: Staff Detected!\nName: " .. staffName .. "\nBadge: " .. badgeName)
+end
 
-    local function scanCharacter(character)
-        -- Cek apakah Fitur ON atau OFF
-        if not AntiAdminEnabled then return end
-
-        local head = character:WaitForChild("Head", 10)
-        if head then
-            local nameTag = head:WaitForChild("NameTag", 5)
-            if nameTag then
-                local badges = nameTag:WaitForChild("Badges", 5)
-                if badges then
-                    -- Cek setiap badge di dalam folder Badges
-                    for _, badgeName in ipairs(targetBadges) do
-                        local badge = badges:FindFirstChild(badgeName)
-                        if badge and badge.Visible == true then
-                            localPlayer:Kick("\n[WzxX PROTECTION]\nStaff Terdeteksi: " .. player.Name .. "\nBadge: " .. badgeName)
-                            return
+-- --- LOGIC SCANNER UTAMA (REAL-TIME LOOP) ---
+task.spawn(function()
+    while task.wait(0.5) do -- Scan setiap setengah detik biar gak kecolongan
+        if AntiAdminEnabled then
+            pcall(function()
+                for _, player in ipairs(Players:GetPlayers()) do
+                    -- 1. Jangan cek diri sendiri biar gak kena kick pas pamer badge visual
+                    if player ~= localPlayer and player.Name ~= localPlayer.Name then
+                        
+                        local char = player.Character
+                        local head = char and char:FindFirstChild("Head")
+                        local nameTag = head and head:FindFirstChild("NameTag")
+                        local badges = nameTag and nameTag:FindFirstChild("Badges")
+                        
+                        if badges then
+                            for _, bName in ipairs(targetBadges) do
+                                local badge = badges:FindFirstChild(bName)
+                                
+                                -- 2. Cek apakah Badge-nya aktif/kelihatan
+                                if badge and badge.Visible == true then
+                                    safetyKick(player.Name, bName)
+                                    return -- Berhenti loop karena udah ke kick
+                                end
+                            end
                         end
                     end
                 end
-            end
+            end)
         end
     end
-
-    -- Jalankan scan saat karakter player tersebut muncul
-    if player.Character then
-        task.spawn(function() scanCharacter(player.Character) end)
-    end
-    player.CharacterAdded:Connect(scanCharacter)
-end
-
--- Jalankan listener buat semua player
-for _, player in ipairs(Players:GetPlayers()) do
-    checkAndKick(player)
-end
-Players.PlayerAdded:Connect(checkAndKick)
+end)
 
 -- -- --- */ TOGGLE DI TAB SETTINGS /* --- --
 SettingTab:Toggle({ 
@@ -749,27 +862,12 @@ SettingTab:Toggle({
     Callback = function(s) 
         AntiAdminEnabled = s 
         
-        -- Kalau baru dinyalain, langsung re-scan semua player yang ada
         if s then
-            for _, player in ipairs(Players:GetPlayers()) do
-                if player.Character then
-                    task.spawn(function()
-                        local head = player.Character:FindFirstChild("Head")
-                        local nameTag = head and head:FindFirstChild("NameTag")
-                        local badges = nameTag and nameTag:FindFirstChild("Badges")
-                        if badges then
-                            for _, bName in pairs(targetBadges) do
-                                local b = badges:FindFirstChild(bName)
-                                if b and b.Visible == true then
-                                    localPlayer:Kick("\n[WzxX PROTECTION]\nStaff Terdeteksi: " .. player.Name)
-                                    
-                                end
-                            end
-                        end
-                    end)
-                end
-            end
-            WindUI:Notify({Title = "Security", Content = "Anti-Staff Active!", Duration = 2})
+            WindUI:Notify({
+                Title = "Security Active", 
+                Content = "Scanning server for staff badges...", 
+                Duration = 2
+            })
         end
     end 
 })
@@ -810,16 +908,31 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
+-- */ UPDATE: ROD DETECTOR (Hanya deteksi Rod) /* --
 task.spawn(function()
     while task.wait(0.5) do
         local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildWhichIsA("Tool")
-        RodParagraph:SetDesc(tool and "Detected: " .. tool.Name or "Detected: None")
+        
+        -- Filter: Pastikan namanya ada kata "rod"
+        if tool and string.find(string.lower(tool.Name), "rod") then
+            RodParagraph:SetDesc("Detected: " .. tool.Name)
+        else
+            RodParagraph:SetDesc("Detected: None (Pegang Rod!)")
+        end
+
         local count = 0
         local bp = LocalPlayer:FindFirstChild("Backpack")
-        if bp then for _, item in pairs(bp:GetChildren()) do if string.find(item.Name:lower(), "fish") or string.find(item.Name:lower(), "ikan") then count = count + 1 end end end
+        if bp then 
+            for _, item in pairs(bp:GetChildren()) do 
+                if string.find(item.Name:lower(), "fish") or string.find(item.Name:lower(), "ikan") then 
+                    count = count + 1 
+                end 
+            end 
+        end
         IkanParagraph:SetDesc("Ikan: " .. tostring(count))
     end
 end)
+
 
 -- */ 5. FIX ANTI-ADMIN (KICK + SHUTDOWN) & ANTI-AFK /* --
 task.spawn(function()
@@ -850,17 +963,34 @@ LocalPlayer.Idled:Connect(function()
     end
 end)
 
--- */ 6. AUTO FISHING LOGIC (ASLI) /* --
+-- */ UPDATE: AUTO FISHING LOGIC (Anti-Gagal) /* --
 local function InstantThrow()
     if not AutoFishingEnabled then return end
     pcall(function()
-        local Rod = LocalPlayer.Character:FindFirstChildWhichIsA("Tool")
-        if Rod and string.find(Rod.Name:lower(), "rod") then
+        local char = LocalPlayer.Character
+        local Rod = char and char:FindFirstChildWhichIsA("Tool")
+        
+        -- Perbaikan: Cari kata "rod" secara fleksibel (Basic Rod, dsb)
+        if Rod and string.find(string.lower(Rod.Name), "rod") then
             RodRemote:FireServer("Throw", Rod, workspace:WaitForChild("Terrain"))
         end
     end)
 end
-LocalPlayer.Character.ChildAdded:Connect(function(c) if AutoFishingEnabled and c:IsA("Tool") and string.find(c.Name:lower(), "rod") then task.wait(0.3); InstantThrow() end end)
-PlayerGui.DescendantRemoving:Connect(function(d) if AutoFishingEnabled and (d.Name == "WhiteBar" or d.Name == "Reeling") then task.wait(1.1); InstantThrow() end end)
+
+-- Trigger pas ganti tool
+LocalPlayer.Character.ChildAdded:Connect(function(c) 
+    if AutoFishingEnabled and c:IsA("Tool") and string.find(string.lower(c.Name), "rod") then 
+        task.wait(0.5) -- Jeda biar animasi mantap
+        InstantThrow() 
+    end 
+end)
+
+-- Trigger pas mencing selesai (UI hilang)
+PlayerGui.DescendantRemoving:Connect(function(d) 
+    if AutoFishingEnabled and (d.Name == "WhiteBar" or d.Name == "Reeling") then 
+        task.wait(1.2) 
+        InstantThrow() 
+    end 
+end)
 
 Window:SelectTab(InfoTab)
