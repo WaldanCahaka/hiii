@@ -62,6 +62,7 @@ task.spawn(function()
     end
 end)
 
+
 -- Mega-Blacklist Data (Admin List)
 local Blacklist = {
     "idjdudnnuemeimd", "ZuVoidGT", "RYIIN100", "16Broww", "POISENIII",
@@ -131,7 +132,7 @@ local Window = WindUI:CreateWindow({
     HideSearchBar = false,
     OpenButton = {
         Title = "Open WzxX UI",
-        CornerRadius = UDim.new(0.5, 0),
+        CornerRadius = UDim.new(0.2, 0),
         StrokeThickness = 2,
         Enabled = true,
         Draggable = true,
@@ -199,7 +200,7 @@ ShopTab:Dropdown({
 ShopTab:Button({ Title = "Purchase Selected Rod", Callback = function() RodShopRemote:InvokeServer("Buy", SelectedRod) end })
 
 -- --- TAB 5: ESP SYSTEM (FIXED DISTANCE LOGIC) ---
-local ESPTab = Window:Tab({ Title = "ESP System", Icon = "solar:eye-bold" })
+local ESPTab = Window:Tab({ Title = "Visual", Icon = "solar:eye-bold" })
 
 -- ESP VARIABLES
 local ESPEnabled = false
@@ -215,18 +216,94 @@ local ESPHealthBar = false
 -- SECTION 1: MAIN SETTINGS
 local MainSection = ESPTab:Section({ Title = "Main Settings", Side = "Left" })
 MainSection:Toggle({ Title = "Enable ESP", Value = false, Callback = function(s) ESPEnabled = s end })
+MainSection:Toggle({ Title = "Show Box", Value = false, Callback = function(s) ESPBox = s end })
+MainSection:Toggle({ Title = "Show Tracer (Locked Center)", Value = false, Callback = function(s) ESPTracer = s end })
+MainSection:Toggle({ Title = "Show Skeleton", Value = false, Callback = function(s) ESPSkeleton = s end })
+MainSection:Toggle({ Title = "Show Health Bar", Value = false, Callback = function(s) ESPHealthBar = s end })
+MainSection:Toggle({ Title = "Show Name", Value = false, Callback = function(s) ESPName = s end })
+MainSection:Toggle({ Title = "Show Distance (Fixed)", Value = false, Callback = function(s) ESPDistance = s end })
 
--- SECTION 2: VISUAL ELEMENTS
-local VisualSection = ESPTab:Section({ Title = "Visual Elements", Side = "Left" })
-VisualSection:Toggle({ Title = "Show Box", Value = false, Callback = function(s) ESPBox = s end })
-VisualSection:Toggle({ Title = "Show Tracer (Locked Center)", Value = false, Callback = function(s) ESPTracer = s end })
-VisualSection:Toggle({ Title = "Show Skeleton", Value = false, Callback = function(s) ESPSkeleton = s end })
-VisualSection:Toggle({ Title = "Show Health Bar", Value = false, Callback = function(s) ESPHealthBar = s end })
+-- --- SECTION NAMETAG VISUAL (FOR SELF) ---
+local NameTagSection = ESPTab:Section({ Title = "NameTag Visual (Self)", Side = "Left" })
 
--- SECTION 3: TEXT INFO
-local InfoSection = ESPTab:Section({ Title = "Text Info", Side = "Right" })
-InfoSection:Toggle({ Title = "Show Name", Value = false, Callback = function(s) ESPName = s end })
-InfoSection:Toggle({ Title = "Show Distance (Fixed)", Value = false, Callback = function(s) ESPDistance = s end })
+-- Fungsi Otomatis Cari Nama Lo di Workspace
+local function SetMyBadge(badgeName, state)
+    pcall(function()
+        local myName = game.Players.LocalPlayer.Name
+        -- Sekarang dia nyari folder sesuai NAMA LO SENDIRI di Workspace
+        local myCharacterFolder = workspace:FindFirstChild(myName)
+        
+        if myCharacterFolder then
+            local badge = myCharacterFolder.Head.NameTag.Badges:FindFirstChild(badgeName)
+            if badge then
+                badge.Visible = state
+            end
+        else
+            -- Kalau folder nama lo gak ketemu, coba cari langsung di Character lo
+            local char = game.Players.LocalPlayer.Character
+            local badge = char and char.Head.NameTag.Badges:FindFirstChild(badgeName)
+            if badge then
+                badge.Visible = state
+            end
+        end
+    end)
+end
+
+NameTagSection:Toggle({ 
+    Title = "Get Admin Badge", 
+    Value = false, 
+    Callback = function(s) 
+        SetMyBadge("Admin", s)
+    end 
+})
+
+NameTagSection:Toggle({ 
+    Title = "Get Vip Badge", 
+    Value = false, 
+    Callback = function(s) 
+        SetMyBadge("Vip", s)
+    end 
+})
+
+NameTagSection:Toggle({ 
+    Title = "Get Donation Badge", 
+    Value = false, 
+    Callback = function(s) 
+        SetMyBadge("Donation", s)
+    end 
+})
+
+NameTagSection:Toggle({ 
+    Title = "Get Sponsored Badge", 
+    Value = false, 
+    Callback = function(s) 
+        SetMyBadge("Sponsored", s)
+    end 
+})
+
+NameTagSection:Toggle({ 
+    Title = "Get HeadAdmin Badge", 
+    Value = false, 
+    Callback = function(s) 
+        SetMyBadge("HeadAdmin", s)
+    end 
+})
+
+NameTagSection:Toggle({ 
+    Title = "Get Developer Badge", 
+    Value = false, 
+    Callback = function(s) 
+        SetMyBadge("Developer", s)
+    end 
+})
+
+NameTagSection:Toggle({ 
+    Title = "Get Verified Badge", 
+    Value = false, 
+    Callback = function(s) 
+        SetMyBadge("Verified", s)
+    end 
+})
 
 
 -- === BAGIAN 2: LOGIC & RENDERING (FIXED) ===
@@ -487,86 +564,239 @@ Players.PlayerRemoving:Connect(function(player)
     espInstance:removeEsp(player)
 end)
 
--- -- --- TAB 4: SETTING (FIXED ANTI SWIM) ---
-local SettingTab = Window:Tab({ Title = "Setting", Icon = "solar:settings-bold" })
+-- -- --- TAB 1: MOVEMENT (FIXED LOGIC) --- --
+local MovementTab = Window:Tab({ Title = "Movement", Icon = "solar:walking-bold" })
+local WaterMoveSection = MovementTab:Section({ Title = "Water Movement", Side = "Left" })
 
--- Variables
-local AntiSwimEnabled = false
-local AntiAdminEnabled = false
-local AntiAFKEnabled = false
+-- Logic Variables (Internal)
+local WaterPart = nil
 
--- 1. Anti Admin
-SettingTab:Toggle({ Title = "Anti Admin (Mega-Blacklist)", Value = false, Callback = function(s) AntiAdminEnabled = s end })
-
--- 2. Anti-AFK
-SettingTab:Toggle({ Title = "Anti-AFK (No Kick)", Value = false, Callback = function(s) AntiAFKEnabled = s end })
-
--- === SECTION: WATER TOOLS ===
-local WaterSection = SettingTab:Section({ Title = "Water Tools", Side = "Left" })
-
--- 3. Anti Swim (Force Walk & Sink)
-WaterSection:Toggle({ Title = "Anti Swim (Force Walk)", Value = false, Callback = function(s)
-    AntiSwimEnabled = s
-    
-    local Player = game:GetService("Players").LocalPlayer
-    
-    if s then
-        -- JALANKAN ANTI SWIM
-        task.spawn(function()
-            while AntiSwimEnabled do
-                task.wait(0.1)
-                local char = Player.Character
-                local hum = char and char:FindFirstChild("Humanoid")
-                
-                if hum then
-                    -- Matikan kemampuan berenang
-                    hum:SetStateEnabled(Enum.HumanoidStateType.Swimming, false)
-                    
-                    -- Jika sedang di air, paksa ke mode jalan
-                    if hum:GetState() == Enum.HumanoidStateType.Swimming then
-                        hum:ChangeState(Enum.HumanoidStateType.Running)
+-- 1. Anti-Swim Logic (Deep Walk)
+WaterMoveSection:Toggle({ 
+    Title = "Anti-Swim (Deep Walk)", 
+    Value = false, 
+    Callback = function(s) 
+        AntiSwimEnabled = s 
+        local Player = game:GetService("Players").LocalPlayer
+        
+        if AntiSwimEnabled then
+            task.spawn(function()
+                while AntiSwimEnabled do
+                    local char = Player.Character
+                    local hum = char and char:FindFirstChild("Humanoid")
+                    if hum then
+                        -- Matikan state berenang
+                        hum:SetStateEnabled(Enum.HumanoidStateType.Swimming, false)
+                        
+                        -- Paksa lari kalau nyangkut di state berenang
+                        if hum:GetState() == Enum.HumanoidStateType.Swimming then
+                            hum:ChangeState(Enum.HumanoidStateType.Running)
+                        end
+                        
+                        -- Pemberat Fisik (Density Tinggi)
+                        for _, v in pairs(char:GetChildren()) do
+                            if v:IsA("BasePart") then
+                                v.CustomPhysicalProperties = PhysicalProperties.new(100, 0.3, 0.5)
+                            end
+                        end
                     end
+                    task.wait(0.1)
+                end
+            end)
+        else
+            -- RESET
+            local char = Player.Character
+            local hum = char and char:FindFirstChild("Humanoid")
+            if hum then
+                hum:SetStateEnabled(Enum.HumanoidStateType.Swimming, true)
+                hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+            end
+            if char then
+                for _, v in pairs(char:GetChildren()) do
+                    if v:IsA("BasePart") then
+                        v.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
+                    end
+                end
+            end
+        end
+    end 
+})
+
+-- 2. Walk on Water Logic (Solid Platform)
+WaterMoveSection:Toggle({ 
+    Title = "Walk on Water (Solid)", 
+    Value = false, 
+    Callback = function(s) 
+        WalkOnWaterEnabled = s 
+        local Player = game:GetService("Players").LocalPlayer
+        
+        if WalkOnWaterEnabled then
+            -- Create Invisible Floor
+            WaterPart = Instance.new("Part")
+            WaterPart.Name = "WzxX_WaterFloor"
+            WaterPart.Size = Vector3.new(10, 1, 10)
+            WaterPart.Transparency = 1
+            WaterPart.Anchored = true
+            WaterPart.Parent = workspace
+            
+            task.spawn(function()
+                while WalkOnWaterEnabled do
+                    local char = Player.Character
+                    local root = char and char:FindFirstChild("HumanoidRootPart")
                     
-                    -- Buat Karakter Berat (Agar Tenggelam/Bisa Jalan di Dasar)
-                    for _, v in pairs(char:GetChildren()) do
-                        if v:IsA("BasePart") then
-                            v.CustomPhysicalProperties = PhysicalProperties.new(100, 0.3, 0.5)
+                    if root then
+                        -- Deteksi Material di bawah kaki
+                        local ray = Ray.new(root.Position, Vector3.new(0, -10, 0))
+                        local hit, pos, norm, mat = workspace:FindPartOnRayWithIgnoreList(ray, {char, WaterPart})
+                        
+                        if mat == Enum.Material.Water then
+                            -- Pindahkan balok ke permukaan air
+                            WaterPart.CFrame = CFrame.new(root.Position.X, pos.Y - 0.5, root.Position.Z)
+                            WaterPart.CanCollide = true
+                        else
+                            WaterPart.CanCollide = false
+                        end
+                    end
+                    task.wait()
+                end
+            end)
+        else
+            -- Cleanup
+            if WaterPart then
+                WaterPart:Destroy()
+                WaterPart = nil
+            end
+        end
+    end 
+})
+
+-- -- --- TAB: SETTINGS --- --
+local SettingTab = Window:Tab({ Title = "Settings", Icon = "solar:settings-bold" })
+
+-- 1. Automation & AFK Section
+SettingTab:Paragraph({ 
+    Title = "Automation & AFK", 
+    Content = "Menjaga karakter tetap aktif agar tidak terkena kick oleh sistem Roblox." 
+})
+
+SettingTab:Toggle({ 
+    Title = "Anti-AFK (Stay Active)", 
+    Value = false, 
+    Callback = function(s) 
+        AntiAFKEnabled = s 
+        -- Logic sudah terhubung ke Idled Event di script utama
+    end 
+})
+
+-- 2. Security Section
+SettingTab:Paragraph({ 
+    Title = "Security & Protection", 
+    Content = "Fitur pelindung otomatis jika ada Admin atau Staff yang masuk ke server." 
+})
+
+-- -- --- */ SETTINGS: ANTI-STAFF PROTECTION /* --- --
+local Players = game:GetService("Players")
+local localPlayer = Players.LocalPlayer
+
+-- Daftar nama badge yang dicurigai
+local targetBadges = {"HeadAdmin", "Developer", "Admin"}
+
+-- Fungsi Scan (Hanya jalan kalau AntiAdminEnabled == true)
+local function checkAndKick(player)
+    -- Jangan cek diri sendiri
+    if player == localPlayer then return end
+
+    local function scanCharacter(character)
+        -- Cek apakah Fitur ON atau OFF
+        if not AntiAdminEnabled then return end
+
+        local head = character:WaitForChild("Head", 10)
+        if head then
+            local nameTag = head:WaitForChild("NameTag", 5)
+            if nameTag then
+                local badges = nameTag:WaitForChild("Badges", 5)
+                if badges then
+                    -- Cek setiap badge di dalam folder Badges
+                    for _, badgeName in ipairs(targetBadges) do
+                        local badge = badges:FindFirstChild(badgeName)
+                        if badge and badge.Visible == true then
+                            localPlayer:Kick("\n[WzxX PROTECTION]\nStaff Terdeteksi: " .. player.Name .. "\nBadge: " .. badgeName)
+                            return
                         end
                     end
                 end
             end
-        end)
-    else
-        -- RESET (SAAT DI-OFF KAN)
-        local char = Player.Character
-        local hum = char and char:FindFirstChild("Humanoid")
-        
-        if hum then
-            -- Aktifkan kembali kemampuan berenang
-            hum:SetStateEnabled(Enum.HumanoidStateType.Swimming, true)
-            -- Paksa refresh state agar bisa langsung berenang lagi
-            hum:ChangeState(Enum.HumanoidStateType.GettingUp)
-        end
-        
-        -- Kembalikan berat karakter ke Normal
-        if char then
-            for _, v in pairs(char:GetChildren()) do
-                if v:IsA("BasePart") then
-                    v.CustomPhysicalProperties = nil -- Reset ke default roblox
-                end
-            end
         end
     end
-end })
 
--- === SECTION: INTERFACE ===
-local UISection = SettingTab:Section({ Title = "Interface", Side = "Right" })
-UISection:Dropdown({
-    Title = "Theme Changer",
-    Values = { "Dark", "Light", "Rose", "Plant", "Red", "Indigo", "Sky", "Violet", "Amber", "Emerald", "Midnight", "Crimson", "Monokai Pro", "Cotton Candy", "Rainbow" },
-    Value = "Crimson",
-    Callback = function(option) WindUI:SetTheme(tostring(option)) end
+    -- Jalankan scan saat karakter player tersebut muncul
+    if player.Character then
+        task.spawn(function() scanCharacter(player.Character) end)
+    end
+    player.CharacterAdded:Connect(scanCharacter)
+end
+
+-- Jalankan listener buat semua player
+for _, player in ipairs(Players:GetPlayers()) do
+    checkAndKick(player)
+end
+Players.PlayerAdded:Connect(checkAndKick)
+
+-- -- --- */ TOGGLE DI TAB SETTINGS /* --- --
+SettingTab:Toggle({ 
+    Title = "Anti-Staff (Auto Leave)", 
+    Value = false, 
+    Callback = function(s) 
+        AntiAdminEnabled = s 
+        
+        -- Kalau baru dinyalain, langsung re-scan semua player yang ada
+        if s then
+            for _, player in ipairs(Players:GetPlayers()) do
+                if player.Character then
+                    task.spawn(function()
+                        local head = player.Character:FindFirstChild("Head")
+                        local nameTag = head and head:FindFirstChild("NameTag")
+                        local badges = nameTag and nameTag:FindFirstChild("Badges")
+                        if badges then
+                            for _, bName in pairs(targetBadges) do
+                                local b = badges:FindFirstChild(bName)
+                                if b and b.Visible == true then
+                                    localPlayer:Kick("\n[WzxX PROTECTION]\nStaff Terdeteksi: " .. player.Name)
+                                end
+                            end
+                        end
+                    end)
+                end
+            end
+            WindUI:Notify({Title = "Security", Content = "Anti-Staff Active!", Duration = 2})
+        end
+    end 
 })
+
+
+
+-- 3. Interface Section
+SettingTab:Paragraph({ 
+    Title = "Interface Customization", 
+    Content = "Pilih warna tema yang kamu suka untuk tampilan menu WzxX." 
+})
+
+SettingTab:Dropdown({
+    Title = "Theme Color",
+    Values = { "Dark", "Light", "Crimson", "Midnight", "Rainbow" },
+    Value = "Crimson",
+    Callback = function(option) 
+        WindUI:SetTheme(tostring(option)) 
+    end
+})
+
+-- 4. Information Section
+SettingTab:Paragraph({ 
+    Title = "Script Info", 
+    Content = "Arsitek Utama: WzxX\nVersion: 1.2 Final State\nStatus: Secure" 
+})
+
+
 
 -- */ 4. PERFORMANCE & INFO LOGS /* --
 local lastIteration, frameCount = tick(), 0
