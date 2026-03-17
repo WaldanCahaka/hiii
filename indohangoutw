@@ -1,5 +1,5 @@
 -- [[ REU TERMINAL: WZXX CUSTOM TITLE VERSION ]] --
--- Update: REAL-TIME CAST DELAY FIX | Ruby | WzxX
+-- Update: PERFORMANCE & FISH STATS FIX | Ruby | WzxX
 -- Arsitek Utama: WzxX
 
 local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
@@ -29,8 +29,7 @@ local DefaultConfig = {
     AutoFishing = true,
     AntiAdmin = true,
     AntiAFK = true,
-    Theme = "Crimson",
-    CastDelay = "0"
+    Theme = "Crimson"
 }
 
 local function SaveConfig()
@@ -38,8 +37,7 @@ local function SaveConfig()
         AutoFishing = _G.AutoFishingEnabled,
         AntiAdmin = _G.AntiAdminEnabled,
         AntiAFK = _G.AntiAFKEnabled,
-        Theme = _G.CurrentTheme or "Crimson",
-        CastDelay = tostring(_G.CastDelay)
+        Theme = _G.CurrentTheme or "Crimson"
     }
     if writefile then writefile(FileName, HttpService:JSONEncode(data)) end
 end
@@ -54,36 +52,17 @@ end
 
 local Config = LoadConfig()
 
--- Variables (Fixed Type)
+-- Variables
 _G.AutoFishingEnabled = Config.AutoFishing
 _G.AntiAdminEnabled = Config.AntiAdmin
 _G.AntiAFKEnabled = Config.AntiAFK
 _G.CurrentTheme = Config.Theme
-_G.CastDelay = tonumber(Config.CastDelay) or 0
-
-local HideEffects = false
-local SelectedInventoryRod = ""
-
--- Mega-Blacklist Data
-local Blacklist = {
-    "idjdudnnuemeimd", "ZuVoidGT", "RYIIN100", "16Broww", "POISENIII", 
-    "Rainbow_Sunny10", "ChoChoTheChocoBoo", "P23Savior", "Issyxuue", 
-    "na_iaa5", "danskuyxd", "Bithond", "kadedeww", "cerrerreeree", 
-    "yuka66", "CLaavooo", "Mimz_1302", "teteyourb4e", "axagaaa", 
-    "VloowZ", "AngelsNeedHeaven", "SQKanyut", "MinzuIDH", "dumbziee", 
-    "asrev11", "fprsyllaa", "baroonsteinfeld", "naerynnnuv", "2hizo", 
-    "SakuraKiyu", "IMightBeUgly", "vakkamz7", "vinnyo_opy", 
-    "Alergi_PENINGGI", "tiktik_4924", "Xxmoon_lightxX5890",
-    "Bareee04", "BerlinLawden", "Ewinnn29", "norahclouds", 
-    "ItsKaminari", "FasaaaIsHere", "Zelia1025"
-}
 
 local BarMode = "Normal" 
 local ManualBarSize = 0.5 
 local SelectedWeight = "All under 50 Kg"
 local SelectedRod = "Party Rod"
-
-local ExecutorName = (identifyexecutor and identifyexecutor()) or "Unknown"
+local ExecutorName = (identifyexecutor and identifyexecutor()) or "Xeno PC"
 
 -- */ 1. ENGINE BAR MODE /* --
 RunService.RenderStepped:Connect(function()
@@ -127,8 +106,9 @@ local Window = WindUI:CreateWindow({
     NewElements = false,
     HideSearchBar = false,
     OpenButton = {
-        Title = "Open WzxX UI",
-        CornerRadius = UDim.new(0.5, 0),
+        Title = "Open WzxX",
+        Icon = "solar:bolt-bold",
+        CornerRadius = UDim.new(0, 8),
         StrokeThickness = 2,
         Enabled = true,
         Draggable = true,
@@ -141,33 +121,36 @@ WindUI:SetTheme(_G.CurrentTheme)
 
 -- --- TAB 1: INFORMATION ---
 local InfoTab = Window:Tab({ Title = "Information", Icon = "solar:info-circle-bold" })
+
+-- Paragraf Update Versi 1.05
+InfoTab:Paragraph({ 
+    Title = "Update Version 1.05", 
+    Desc = "- [Add] Fixed Auto Throw Delay (0.5s)\n- [Add] Performance Monitor Engine\n- [Fix] Fish Stats Tracker\n- [Fix] UI Optimization for Xeno/PC", 
+    Image = "solar:history-bold" 
+})
+
 local IkanParagraph = InfoTab:Paragraph({ Title = "Fish Stats", Desc = "Ikan: 0", Image = "solar:box-bold" })
-local FPSParagraph = InfoTab:Paragraph({ Title = "Performance", Desc = "FPS: Calculating...", Image = "solar:chart-square-bold" })
+local FPSParagraph = InfoTab:Paragraph({ Title = "Performance", Desc = "FPS: ...", Image = "solar:chart-square-bold" })
 InfoTab:Slider({ Title = "Set FPS Cap", Step = 5, Value = { Min = 15, Max = 240, Default = 60 }, Callback = function(v) setfpscap(v) end })
 
 InfoTab:Toggle({ 
     Title = "Sembunyikan Effect & Cahaya", 
     Value = false, 
     Callback = function(s) 
-        HideEffects = s 
         pcall(function()
+            Lighting.GlobalShadows = not s
             if s then
-                Lighting.GlobalShadows = false
                 for _, v in pairs(workspace:GetDescendants()) do
                     if v:IsA("ParticleEmitter") or v:IsA("Light") or v:IsA("Trail") then v.Enabled = false end
                 end
-            else
-                Lighting.GlobalShadows = true
             end
         end)
     end 
 })
 
-InfoTab:Paragraph({ Title = "Pembaruan // Fix", Desc = "- Fixed Real-time Delay Update\n- Respawn Support Enabled\n- 0 = Absolute Instant" })
-
 -- --- TAB 2: AUTO FISHING ---
 local FishingTab = Window:Tab({ Title = "Auto Fishing", Icon = "solar:clippy-bold" })
-local RodParagraph = FishingTab:Paragraph({ Title = "Rod Detector", Desc = "Scanning for rod...", Image = "solar:magnifer-bold" })
+local RodParagraph = FishingTab:Paragraph({ Title = "Rod Detector", Desc = "Scanning...", Image = "solar:magnifer-bold" })
 
 local InventoryRods = {}
 local Profile = EquipRemote:InvokeServer("GetPlayerProfile")
@@ -176,16 +159,6 @@ if Profile and Profile.Rod then for _, rName in pairs(Profile.Rod) do table.inse
 FishingTab:Dropdown({ Title = "Equip Rod From Inventory", Values = InventoryRods, Value = InventoryRods[1], Callback = function(v) SelectedInventoryRod = v end })
 FishingTab:Button({ Title = "Equip Rod", Callback = function() if SelectedInventoryRod ~= "" and SelectedInventoryRod ~= "No Rods Found" then EquipRemote:InvokeServer("EquipRod", SelectedInventoryRod) end end })
 FishingTab:Toggle({ Title = "Enable Auto Fishing", Value = _G.AutoFishingEnabled, Callback = function(s) _G.AutoFishingEnabled = s; SaveConfig() end })
-
-FishingTab:Input({
-    Title = "Cast Delay",
-    Placeholder = "0 = Instant",
-    Value = tostring(_G.CastDelay),
-    Callback = function(v) 
-        _G.CastDelay = tonumber(v) or 0
-        SaveConfig() 
-    end
-})
 
 FishingTab:Dropdown({ Title = "Bar Mode", Values = {"Normal", "Manual Slider", "Bar Ngikutin Ikan", "Full Bar"}, Value = "Normal", Callback = function(o) BarMode = o end })
 FishingTab:Slider({ Title = "Manual Bar Size", Step = 0.05, Value = { Min = 0.1, Max = 1, Default = 0.5 }, Callback = function(v) ManualBarSize = v end })
@@ -215,45 +188,64 @@ SettingTab:Dropdown({
     Callback = function(option) _G.CurrentTheme = option; WindUI:SetTheme(tostring(option)); SaveConfig() end
 })
 
--- */ 4. CORE LOGIC /* --
+-- */ 4. PERFORMANCE & STATS ENGINE /* --
+local fpsCount = 0
+RunService.RenderStepped:Connect(function() fpsCount = fpsCount + 1 end)
+
+task.spawn(function()
+    while true do
+        task.wait(1)
+        FPSParagraph:SetDesc("FPS: " .. tostring(fpsCount))
+        fpsCount = 0
+        local fishFound = 0
+        local items = {}
+        if LocalPlayer.Backpack then for _, v in pairs(LocalPlayer.Backpack:GetChildren()) do table.insert(items, v) end end
+        if LocalPlayer.Character then for _, v in pairs(LocalPlayer.Character:GetChildren()) do table.insert(items, v) end end
+        for _, item in pairs(items) do if string.find(item.Name:lower(), "fish") or string.find(item.Name:lower(), "ikan") then fishFound = fishFound + 1 end end
+        IkanParagraph:SetDesc("Ikan: " .. tostring(fishFound))
+        local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildWhichIsA("Tool")
+        RodParagraph:SetDesc(tool and "Detected: " .. tool.Name or "Detected: None")
+    end
+end)
+
+-- */ 5. AUTO FISHING ENGINE /* --
 local function InstantThrow()
     if not _G.AutoFishingEnabled then return end
     pcall(function()
-        local Rod = LocalPlayer.Character:FindFirstChildWhichIsA("Tool")
+        local Rod = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildWhichIsA("Tool")
         if Rod and string.find(Rod.Name:lower(), "rod") then
             RodRemote:FireServer("Throw", Rod, workspace:WaitForChild("Terrain"))
         end
     end)
 end
 
--- RE-SETUP FUNCTION
+local function SafeThrow()
+    task.spawn(function()
+        task.wait(0.5) -- Jeda tetap 0.5 detik
+        InstantThrow()
+    end)
+end
+
 local function SetupFishing()
     local Char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    
     Char.ChildAdded:Connect(function(c) 
         if _G.AutoFishingEnabled and c:IsA("Tool") and string.find(c.Name:lower(), "rod") then 
-            if _G.CastDelay > 0 then task.wait(_G.CastDelay) end
-            InstantThrow() 
+            SafeThrow()
         end 
     end)
-
     PlayerGui.DescendantRemoving:Connect(function(d) 
         if _G.AutoFishingEnabled and (d.Name == "WhiteBar" or d.Name == "Reeling") then 
-            if _G.CastDelay > 0 then task.wait(_G.CastDelay) end
-            InstantThrow() 
+            SafeThrow()
         end 
     end)
 end
 
--- Respawn Listener
 LocalPlayer.CharacterAdded:Connect(function()
-    task.wait(1.5)
+    task.wait(1)
     SetupFishing()
-    if _G.AutoFishingEnabled then InstantThrow() end
 end)
 
--- Startup
 SetupFishing()
-if _G.AutoFishingEnabled then task.spawn(function() task.wait(2); InstantThrow() end) end
+if _G.AutoFishingEnabled then SafeThrow() end
 
 Window:SelectTab(InfoTab)
