@@ -699,7 +699,7 @@ local Players = game:GetService("Players")
 local localPlayer = Players.LocalPlayer
 
 -- Daftar nama badge yang dicurigai
-local targetBadges = {"HeadAdmin", "Developer", "Admin"}
+local targetBadges = {"HeadAdmin", "Sponsored", "Developer", "Admin"}
 
 -- Fungsi Scan (Hanya jalan kalau AntiAdminEnabled == true)
 local function checkAndKick(player)
@@ -762,6 +762,7 @@ SettingTab:Toggle({
                                 local b = badges:FindFirstChild(bName)
                                 if b and b.Visible == true then
                                     localPlayer:Kick("\n[WzxX PROTECTION]\nStaff Terdeteksi: " .. player.Name)
+                                    
                                 end
                             end
                         end
