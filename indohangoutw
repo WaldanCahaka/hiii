@@ -64,14 +64,20 @@ end)
 
 -- Mega-Blacklist Data (Admin List)
 local Blacklist = {
-    "idjdudnnuemeimd", "ZuVoidGT", "RYIIN100", "16Broww", "POISENIII", 
-    "Rainbow_Sunny10", "ChoChoTheChocoBoo", "P23Savior", "Issyxuue", 
-    "na_iaa5", "danskuyxd", "Bithond", "kadedeww", "cerrerreeree", 
-    "yuka66", "CLaavooo", "Mimz_1302", "teteyourb4e", "axagaaa", 
-    "VloowZ", "AngelsNeedHeaven", "SQKanyut", "MinzuIDH", "dumbziee", 
-    "asrev11", "fprsyllaa", "baroonsteinfeld", "naerynnnuv", "2hizo", 
-    "SakuraKiyu", "IMightBeUgly", "vakkamz7", "vinnyo_opy", 
-    "Alergi_PENINGGI", "tiktik_4924", "Xxmoon_lightxX5890"
+    "idjdudnnuemeimd", "ZuVoidGT", "RYIIN100", "16Broww", "POISENIII",
+    "Rainbow_Sunny10", "ChoChoTheChocoBoo", "P23Savior", "Issyxuue",
+    "na_iaa5", "danskuyxd", "Bithond", "kadedeww", "cerrerreeree",
+    "yuka66", "CLaavooo", "Mimz_1302", "teteyourb4e", "axagaaa",
+    "VloowZ", "AngelsNeedHeaven", "SQKanyut", "MinzuIDH", "dumbziee",
+    "asrev11", "fprsyllaa", "baroonsteinfeld", "naerynnnuv", "2hizo",
+    "SakuraKiyu", "IMightBeUgly", "vakkamz7", "vinnyo_opy",
+    "Alergi_PENINGGI", "tiktik_4924", "Xxmoon_lightxX5890",
+
+    -- Tambahan baru
+    "jank_1403", "Zelia1025", "zeovlyy", "norahclouds",
+    "ItsKaminari", "TrustyShiki", "Bareee04", "BerlinLawden",
+    "ikenlope27", "antonioekobar", "LoPaws_53",
+    "ethyreaa", "raelizme", "DAXAJA0"
 }
 
 local BarMode = "Normal" 
