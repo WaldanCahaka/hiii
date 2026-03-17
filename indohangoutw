@@ -1,5 +1,5 @@
 -- [[ REU TERMINAL: WZXX CUSTOM TITLE VERSION ]] --
--- Update: AUTO KICK & SHUTDOWN PROTECTION | Ruby | WzxX
+-- Update: REAL-TIME CAST DELAY FIX | Ruby | WzxX
 -- Arsitek Utama: WzxX
 
 local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
@@ -12,6 +12,7 @@ local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local RunService = game:GetService("RunService")
 local VirtualUser = game:GetService("VirtualUser")
 local Lighting = game:GetService("Lighting")
+local HttpService = game:GetService("HttpService")
 
 -- Remotes
 local Events = ReplicatedStorage:WaitForChild("Events")
@@ -22,14 +23,48 @@ local RodShopRemote = Events:WaitForChild("RemoteFunction"):WaitForChild("RodSho
 local BuyRodConfirmRemote = Events:WaitForChild("RemoteFunction"):WaitForChild("BuyRodConfirm")
 local EquipRemote = Events:WaitForChild("RemoteFunction"):WaitForChild("EquipTools")
 
--- Variables
-local AutoFishingEnabled = false
-local AntiAdminEnabled = false
-local AntiAFKEnabled = false
+-- */ AUTO SAVE & LOAD SYSTEM /* --
+local FileName = "WzxX_Config.json"
+local DefaultConfig = {
+    AutoFishing = true,
+    AntiAdmin = true,
+    AntiAFK = true,
+    Theme = "Crimson",
+    CastDelay = "0"
+}
+
+local function SaveConfig()
+    local data = {
+        AutoFishing = _G.AutoFishingEnabled,
+        AntiAdmin = _G.AntiAdminEnabled,
+        AntiAFK = _G.AntiAFKEnabled,
+        Theme = _G.CurrentTheme or "Crimson",
+        CastDelay = tostring(_G.CastDelay)
+    }
+    if writefile then writefile(FileName, HttpService:JSONEncode(data)) end
+end
+
+local function LoadConfig()
+    if isfile and isfile(FileName) then
+        local success, data = pcall(function() return HttpService:JSONDecode(readfile(FileName)) end)
+        if success then return data end
+    end
+    return DefaultConfig
+end
+
+local Config = LoadConfig()
+
+-- Variables (Fixed Type)
+_G.AutoFishingEnabled = Config.AutoFishing
+_G.AntiAdminEnabled = Config.AntiAdmin
+_G.AntiAFKEnabled = Config.AntiAFK
+_G.CurrentTheme = Config.Theme
+_G.CastDelay = tonumber(Config.CastDelay) or 0
+
 local HideEffects = false
 local SelectedInventoryRod = ""
 
--- Mega-Blacklist Data (Admin List)
+-- Mega-Blacklist Data
 local Blacklist = {
     "idjdudnnuemeimd", "ZuVoidGT", "RYIIN100", "16Broww", "POISENIII", 
     "Rainbow_Sunny10", "ChoChoTheChocoBoo", "P23Savior", "Issyxuue", 
@@ -43,16 +78,14 @@ local Blacklist = {
     "ItsKaminari", "FasaaaIsHere", "Zelia1025"
 }
 
-
 local BarMode = "Normal" 
 local ManualBarSize = 0.5 
 local SelectedWeight = "All under 50 Kg"
 local SelectedRod = "Party Rod"
 
--- Executor Detection
 local ExecutorName = (identifyexecutor and identifyexecutor()) or "Unknown"
 
--- */ 1. ENGINE BAR MODE (LOCKED) - ASLI /* --
+-- */ 1. ENGINE BAR MODE /* --
 RunService.RenderStepped:Connect(function()
     if BarMode == "Normal" then return end
     pcall(function()
@@ -76,7 +109,7 @@ RunService.RenderStepped:Connect(function()
     end)
 end)
 
--- */ 2. SHOP AUTO CONFIRM LOGIC (ASLI) /* --
+-- */ 2. SHOP AUTO CONFIRM /* --
 SellConfirmRemote.OnClientInvoke = function() return "success" end
 BuyRodConfirmRemote.OnClientInvoke = function()
     task.spawn(function()
@@ -86,7 +119,7 @@ BuyRodConfirmRemote.OnClientInvoke = function()
     return "success"
 end
 
--- */ 3. WINDOW CONFIGURATION (FIXED FOR XENO) /* --
+-- */ 3. WINDOW CONFIGURATION /* --
 local Window = WindUI:CreateWindow({
     Title = "WzxX | " .. ExecutorName .. " | Indo Hangout",
     Icon = "solar:bolt-bold",
@@ -99,14 +132,12 @@ local Window = WindUI:CreateWindow({
         StrokeThickness = 2,
         Enabled = true,
         Draggable = true,
-        OnlyMobile = false,
-        Scale = 1,
         Color = ColorSequence.new(Color3.fromHex("#FF0000"), Color3.fromHex("#ffffff"))
     },
     Topbar = { Height = 44, ButtonsType = "Mac" },
 })
 
-WindUI:SetTheme("Crimson")
+WindUI:SetTheme(_G.CurrentTheme)
 
 -- --- TAB 1: INFORMATION ---
 local InfoTab = Window:Tab({ Title = "Information", Icon = "solar:info-circle-bold" })
@@ -132,7 +163,7 @@ InfoTab:Toggle({
     end 
 })
 
-InfoTab:Paragraph({ Title = "Pembaruan // Fix // Add", Desc = "- Added Auto-Shutdown on Admin Detect\n- Ultra Fast Anti-Admin Scan\n- Fixed Anti-AFK Logic\n- Stable for Xeno" })
+InfoTab:Paragraph({ Title = "Pembaruan // Fix", Desc = "- Fixed Real-time Delay Update\n- Respawn Support Enabled\n- 0 = Absolute Instant" })
 
 -- --- TAB 2: AUTO FISHING ---
 local FishingTab = Window:Tab({ Title = "Auto Fishing", Icon = "solar:clippy-bold" })
@@ -144,7 +175,18 @@ if Profile and Profile.Rod then for _, rName in pairs(Profile.Rod) do table.inse
 
 FishingTab:Dropdown({ Title = "Equip Rod From Inventory", Values = InventoryRods, Value = InventoryRods[1], Callback = function(v) SelectedInventoryRod = v end })
 FishingTab:Button({ Title = "Equip Rod", Callback = function() if SelectedInventoryRod ~= "" and SelectedInventoryRod ~= "No Rods Found" then EquipRemote:InvokeServer("EquipRod", SelectedInventoryRod) end end })
-FishingTab:Toggle({ Title = "Enable Auto Fishing", Value = false, Callback = function(s) AutoFishingEnabled = s end })
+FishingTab:Toggle({ Title = "Enable Auto Fishing", Value = _G.AutoFishingEnabled, Callback = function(s) _G.AutoFishingEnabled = s; SaveConfig() end })
+
+FishingTab:Input({
+    Title = "Cast Delay",
+    Placeholder = "0 = Instant",
+    Value = tostring(_G.CastDelay),
+    Callback = function(v) 
+        _G.CastDelay = tonumber(v) or 0
+        SaveConfig() 
+    end
+})
+
 FishingTab:Dropdown({ Title = "Bar Mode", Values = {"Normal", "Manual Slider", "Bar Ngikutin Ikan", "Full Bar"}, Value = "Normal", Callback = function(o) BarMode = o end })
 FishingTab:Slider({ Title = "Manual Bar Size", Step = 0.05, Value = { Min = 0.1, Max = 1, Default = 0.5 }, Callback = function(v) ManualBarSize = v end })
 
@@ -164,69 +206,18 @@ ShopTab:Button({ Title = "Purchase Selected Rod", Callback = function() RodShopR
 
 -- --- TAB 4: SETTING ---
 local SettingTab = Window:Tab({ Title = "Setting", Icon = "solar:settings-bold" })
-SettingTab:Toggle({ Title = "Anti Admin (Mega-Blacklist)", Value = false, Callback = function(s) AntiAdminEnabled = s end })
-SettingTab:Toggle({ Title = "Anti-AFK (No Kick)", Value = false, Callback = function(s) AntiAFKEnabled = s end })
+SettingTab:Toggle({ Title = "Anti Admin (Mega-Blacklist)", Value = _G.AntiAdminEnabled, Callback = function(s) _G.AntiAdminEnabled = s; SaveConfig() end })
+SettingTab:Toggle({ Title = "Anti-AFK (No Kick)", Value = _G.AntiAFKEnabled, Callback = function(s) _G.AntiAFKEnabled = s; SaveConfig() end })
 SettingTab:Dropdown({
     Title = "Theme Changer",
     Values = { "Dark", "Light", "Rose", "Plant", "Red", "Indigo", "Sky", "Violet", "Amber", "Emerald", "Midnight", "Crimson", "Monokai Pro", "Cotton Candy", "Rainbow" },
-    Value = "Crimson",
-    Callback = function(option) WindUI:SetTheme(tostring(option)) end
+    Value = _G.CurrentTheme,
+    Callback = function(option) _G.CurrentTheme = option; WindUI:SetTheme(tostring(option)); SaveConfig() end
 })
 
--- */ 4. PERFORMANCE & INFO LOGS /* --
-local lastIteration, frameCount = tick(), 0
-RunService.Heartbeat:Connect(function()
-    frameCount = frameCount + 1
-    if tick() - lastIteration >= 1 then
-        FPSParagraph:SetDesc("FPS: " .. tostring(frameCount))
-        frameCount = 0
-        lastIteration = tick()
-    end
-end)
-
-task.spawn(function()
-    while task.wait(0.5) do
-        local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildWhichIsA("Tool")
-        RodParagraph:SetDesc(tool and "Detected: " .. tool.Name or "Detected: None")
-        local count = 0
-        local bp = LocalPlayer:FindFirstChild("Backpack")
-        if bp then for _, item in pairs(bp:GetChildren()) do if string.find(item.Name:lower(), "fish") or string.find(item.Name:lower(), "ikan") then count = count + 1 end end end
-        IkanParagraph:SetDesc("Ikan: " .. tostring(count))
-    end
-end)
-
--- */ 5. FIX ANTI-ADMIN (KICK + SHUTDOWN) & ANTI-AFK /* --
-task.spawn(function()
-    while true do
-        if AntiAdminEnabled then
-            for _, player in pairs(Players:GetPlayers()) do
-                if player ~= LocalPlayer then
-                    for _, adminName in pairs(Blacklist) do
-                        if player.Name:lower() == adminName:lower() then
-                            -- Pesan Kick
-                            LocalPlayer:Kick("\n[REU PROTEKSI]\nAdmin Terdeteksi: @" .. player.Name .. "\nMelakukan Shutdown Otomatis...")
-                            task.wait(0.1)
-                            -- Shutdown Total (Keluar Game)
-                            game:Shutdown()
-                        end
-                    end
-                end
-            end
-        end
-        task.wait(0.1) -- Scan super cepat (0.1 detik)
-    end
-end)
-
-LocalPlayer.Idled:Connect(function()
-    if AntiAFKEnabled then
-        VirtualUser:CaptureController()
-        VirtualUser:ClickButton2(Vector2.new())
-    end
-end)
-
--- */ 6. AUTO FISHING LOGIC (ASLI) /* --
+-- */ 4. CORE LOGIC /* --
 local function InstantThrow()
-    if not AutoFishingEnabled then return end
+    if not _G.AutoFishingEnabled then return end
     pcall(function()
         local Rod = LocalPlayer.Character:FindFirstChildWhichIsA("Tool")
         if Rod and string.find(Rod.Name:lower(), "rod") then
@@ -234,7 +225,35 @@ local function InstantThrow()
         end
     end)
 end
-LocalPlayer.Character.ChildAdded:Connect(function(c) if AutoFishingEnabled and c:IsA("Tool") and string.find(c.Name:lower(), "rod") then task.wait(0.3); InstantThrow() end end)
-PlayerGui.DescendantRemoving:Connect(function(d) if AutoFishingEnabled and (d.Name == "WhiteBar" or d.Name == "Reeling") then task.wait(1.1); InstantThrow() end end)
+
+-- RE-SETUP FUNCTION
+local function SetupFishing()
+    local Char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    
+    Char.ChildAdded:Connect(function(c) 
+        if _G.AutoFishingEnabled and c:IsA("Tool") and string.find(c.Name:lower(), "rod") then 
+            if _G.CastDelay > 0 then task.wait(_G.CastDelay) end
+            InstantThrow() 
+        end 
+    end)
+
+    PlayerGui.DescendantRemoving:Connect(function(d) 
+        if _G.AutoFishingEnabled and (d.Name == "WhiteBar" or d.Name == "Reeling") then 
+            if _G.CastDelay > 0 then task.wait(_G.CastDelay) end
+            InstantThrow() 
+        end 
+    end)
+end
+
+-- Respawn Listener
+LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(1.5)
+    SetupFishing()
+    if _G.AutoFishingEnabled then InstantThrow() end
+end)
+
+-- Startup
+SetupFishing()
+if _G.AutoFishingEnabled then task.spawn(function() task.wait(2); InstantThrow() end) end
 
 Window:SelectTab(InfoTab)
