@@ -29,6 +29,39 @@ local AntiAFKEnabled = false
 local HideEffects = false
 local SelectedInventoryRod = ""
 
+-- */ 8. AUTO NOTIFICATION FISH COUNT (1 MINUTE INTERVAL) /* --
+
+task.spawn(function()
+    while true do
+        task.wait(60) -- Tunggu 60 detik (1 Menit)
+
+        local fishCount = 0
+        local fishName = "Fish" -- Nama singkat untuk notifikasi
+
+        -- Cek Backpack LocalPlayer
+        local backpack = LocalPlayer:FindFirstChild("Backpack")
+        if backpack then
+            for _, item in pairs(backpack:GetChildren()) do
+                -- Cek apakah item adalah tool dan namanya ada "Fish" atau "Ikan"
+                if item:IsA("Tool") then
+                    local itemName = string.lower(item.Name)
+                    if string.find(itemName, "fish") or string.find(itemName, "ikan") then
+                        fishCount = fishCount + 1
+                    end
+                end
+            end
+        end
+
+        -- Munculkan Notifikasi WindUI
+        -- Format: "Fish Amount Now : [Jumlah]"
+        WindUI:Notify({
+            Title = "Inventory Update",
+            Content = "Fish Amount Now : " .. fishCount,
+            Duration = 5 -- Notifikasi hilang dalam 5 detik
+        })
+    end
+end)
+
 -- Mega-Blacklist Data (Admin List)
 local Blacklist = {
     "idjdudnnuemeimd", "ZuVoidGT", "RYIIN100", "16Broww", "POISENIII", 
@@ -61,6 +94,539 @@ RunService.RenderStepped:Connect(function()
                 elseif BarMode == "Bar Ngikutin Ikan" then
                     local rb = wb.Parent:FindFirstChild("RedBar") or wb.Parent:FindFirstChild("TargetBar")
                     wb.Size = UDim2.new(0.3, 0, wb.Size.Y.Scale, wb.Size.Y.Offset)
+                    if rb then
+                        local pos = rb.Position.X.Scale + (rb.Size.X.Scale / 2) - (wb.Size.X.Scale / 2)
+                        wb.Position = UDim2.new(pos, wb.Position.X.Offset, wb.Position.Y.Scale, wb.Position.Y.Offset)
+                    end
+                elseif BarMode == "Full Bar" then
+                    wb.Size = UDim2.new(1, 0, wb.Size.Y.Scale, wb.Size.Y.Offset)
+                end
+            end
+        end
+    end)
+end)
+
+-- */ 2. SHOP AUTO CONFIRM LOGIC (ASLI) /* --
+SellConfirmRemote.OnClientInvoke = function() return "success" end
+BuyRodConfirmRemote.OnClientInvoke = function()
+    task.spawn(function()
+        local BR = PlayerGui:FindFirstChild("BuyRodConfirm")
+        if BR then BR.Enabled = false end
+    end)
+    return "success"
+end
+
+-- */ 3. WINDOW CONFIGURATION (FIXED FOR XENO) /* --
+local Window = WindUI:CreateWindow({
+    Title = "WzxX | " .. ExecutorName .. " | Indo Hangout",
+    Icon = "solar:bolt-bold",
+    Folder = "WzxX_Scripts",
+    NewElements = false,
+    HideSearchBar = false,
+    OpenButton = {
+        Title = "Open WzxX UI",
+        CornerRadius = UDim.new(0.5, 0),
+        StrokeThickness = 2,
+        Enabled = true,
+        Draggable = true,
+        OnlyMobile = false,
+        Scale = 1,
+        Color = ColorSequence.new(Color3.fromHex("#FF0000"), Color3.fromHex("#ffffff"))
+    },
+    Topbar = { Height = 44, ButtonsType = "Mac" },
+})
+
+WindUI:SetTheme("Crimson")
+
+-- --- TAB 1: INFORMATION ---
+local InfoTab = Window:Tab({ Title = "Information", Icon = "solar:info-circle-bold" })
+local IkanParagraph = InfoTab:Paragraph({ Title = "Fish Stats", Desc = "Ikan: 0", Image = "solar:box-bold" })
+local FPSParagraph = InfoTab:Paragraph({ Title = "Performance", Desc = "FPS: Calculating...", Image = "solar:chart-square-bold" })
+InfoTab:Slider({ Title = "Set FPS Cap", Step = 5, Value = { Min = 15, Max = 240, Default = 60 }, Callback = function(v) setfpscap(v) end })
+
+InfoTab:Toggle({ 
+    Title = "Sembunyikan Effect & Cahaya", 
+    Value = false, 
+    Callback = function(s) 
+        HideEffects = s 
+        pcall(function()
+            if s then
+                Lighting.GlobalShadows = false
+                for _, v in pairs(workspace:GetDescendants()) do
+                    if v:IsA("ParticleEmitter") or v:IsA("Light") or v:IsA("Trail") then v.Enabled = false end
+                end
+            else
+                Lighting.GlobalShadows = true
+            end
+        end)
+    end 
+})
+
+InfoTab:Paragraph({ Title = "Pembaruan // Fix // Add", Desc = "- Added Auto-Shutdown on Admin Detect\n- Ultra Fast Anti-Admin Scan\n- Fixed Anti-AFK Logic\n- Stable for Xeno" })
+
+-- --- TAB 2: AUTO FISHING ---
+local FishingTab = Window:Tab({ Title = "Auto Fishing", Icon = "solar:clippy-bold" })
+local RodParagraph = FishingTab:Paragraph({ Title = "Rod Detector", Desc = "Scanning for rod...", Image = "solar:magnifer-bold" })
+
+local InventoryRods = {}
+local Profile = EquipRemote:InvokeServer("GetPlayerProfile")
+if Profile and Profile.Rod then for _, rName in pairs(Profile.Rod) do table.insert(InventoryRods, rName) end else InventoryRods = {"No Rods Found"} end
+
+FishingTab:Dropdown({ Title = "Equip Rod From Inventory", Values = InventoryRods, Value = InventoryRods[1], Callback = function(v) SelectedInventoryRod = v end })
+FishingTab:Button({ Title = "Equip Rod", Callback = function() if SelectedInventoryRod ~= "" and SelectedInventoryRod ~= "No Rods Found" then EquipRemote:InvokeServer("EquipRod", SelectedInventoryRod) end end })
+FishingTab:Toggle({ Title = "Enable Auto Fishing", Value = false, Callback = function(s) AutoFishingEnabled = s end })
+FishingTab:Dropdown({ Title = "Bar Mode", Values = {"Normal", "Manual Slider", "Bar Ngikutin Ikan", "Full Bar"}, Value = "Normal", Callback = function(o) BarMode = o end })
+FishingTab:Slider({ Title = "Manual Bar Size", Step = 0.05, Value = { Min = 0.1, Max = 1, Default = 0.5 }, Callback = function(v) ManualBarSize = v end })
+
+-- --- TAB 3: SHOP ---
+local ShopTab = Window:Tab({ Title = "Shop", Icon = "solar:shop-bold" })
+ShopTab:Button({ Title = "Sell All Fish", Callback = function() SellRemote:InvokeServer("SellFish", "Sell All") end })
+ShopTab:Dropdown({ Title = "Filter Weight", Values = {"All under 50 Kg", "All under 100 Kg", "All under 400 Kg", "All under 600 Kg"}, Value = "All under 50 Kg", Callback = function(v) SelectedWeight = v end })
+ShopTab:Button({ Title = "Sell Selected Filter", Callback = function() SellRemote:InvokeServer("SellFish", SelectedWeight) end })
+ShopTab:Paragraph({ Title = "Rod Shop", Desc = "Instant buy rods" })
+ShopTab:Dropdown({
+    Title = "Select Rod",
+    Values = {"Duck Rod", "Earth Rod", "Feather Rod", "Flowers Rod", "Party Rod", "Piranha Rod", "Planet Rod", "Shark Rod", "Thermo Rod", "Trisula Rod", "Wave Rod"},
+    Value = "Party Rod",
+    Callback = function(v) SelectedRod = v end
+})
+ShopTab:Button({ Title = "Purchase Selected Rod", Callback = function() RodShopRemote:InvokeServer("Buy", SelectedRod) end })
+
+-- --- TAB 5: ESP SYSTEM (FIXED DISTANCE LOGIC) ---
+local ESPTab = Window:Tab({ Title = "ESP System", Icon = "solar:eye-bold" })
+
+-- ESP VARIABLES
+local ESPEnabled = false
+local ESPBox = false
+local ESPTracer = false
+local ESPDistance = false
+local ESPSkeleton = false
+local ESPName = false
+local ESPHealthBar = false
+
+-- === BAGIAN 1: UI CONTROLS ===
+
+-- SECTION 1: MAIN SETTINGS
+local MainSection = ESPTab:Section({ Title = "Main Settings", Side = "Left" })
+MainSection:Toggle({ Title = "Enable ESP", Value = false, Callback = function(s) ESPEnabled = s end })
+
+-- SECTION 2: VISUAL ELEMENTS
+local VisualSection = ESPTab:Section({ Title = "Visual Elements", Side = "Left" })
+VisualSection:Toggle({ Title = "Show Box", Value = false, Callback = function(s) ESPBox = s end })
+VisualSection:Toggle({ Title = "Show Tracer (Locked Center)", Value = false, Callback = function(s) ESPTracer = s end })
+VisualSection:Toggle({ Title = "Show Skeleton", Value = false, Callback = function(s) ESPSkeleton = s end })
+VisualSection:Toggle({ Title = "Show Health Bar", Value = false, Callback = function(s) ESPHealthBar = s end })
+
+-- SECTION 3: TEXT INFO
+local InfoSection = ESPTab:Section({ Title = "Text Info", Side = "Right" })
+InfoSection:Toggle({ Title = "Show Name", Value = false, Callback = function(s) ESPName = s end })
+InfoSection:Toggle({ Title = "Show Distance (Fixed)", Value = false, Callback = function(s) ESPDistance = s end })
+
+
+-- === BAGIAN 2: LOGIC & RENDERING (FIXED) ===
+
+local Camera = workspace.CurrentCamera
+
+local ESP = {}
+ESP.__index = ESP
+
+function ESP.new()
+    local self = setmetatable({}, ESP)
+    self.espCache = {}
+    return self
+end
+
+function ESP:createDrawing(type, properties)
+    local drawing = Drawing.new(type)
+    for prop, val in pairs(properties) do
+        drawing[prop] = val
+    end
+    return drawing
+end
+
+function ESP:createComponents()
+    return {
+        Box = self:createDrawing("Square", {
+            Thickness = 1,
+            Transparency = 1,
+            Color = Color3.fromRGB(255, 255, 255),
+            Filled = false
+        }),
+        Tracer = self:createDrawing("Line", {
+            Thickness = 1,
+            Transparency = 1,
+            Color = Color3.fromRGB(255, 0, 0) 
+        }),
+        DistanceLabel = self:createDrawing("Text", {
+            Size = 18,
+            Center = true,
+            Outline = true,
+            Color = Color3.fromRGB(255, 255, 255),
+            OutlineColor = Color3.fromRGB(0, 0, 0)
+        }),
+        NameLabel = self:createDrawing("Text", {
+            Size = 18,
+            Center = true,
+            Outline = true,
+            Color = Color3.fromRGB(255, 255, 255),
+            OutlineColor = Color3.fromRGB(0, 0, 0)
+        }),
+        HealthBar = {
+            Outline = self:createDrawing("Square", {
+                Thickness = 1,
+                Transparency = 1,
+                Color = Color3.fromRGB(0, 0, 0),
+                Filled = false
+            }),
+            Health = self:createDrawing("Square", {
+                Thickness = 1,
+                Transparency = 1,
+                Color = Color3.fromRGB(0, 255, 0),
+                Filled = true
+            })
+        },
+        SkeletonLines = {}
+    }
+end
+
+local bodyConnections = {
+    R15 = {
+        {"Head", "UpperTorso"},
+        {"UpperTorso", "LowerTorso"},
+        {"LowerTorso", "LeftUpperLeg"},
+        {"LowerTorso", "RightUpperLeg"},
+        {"LeftUpperLeg", "LeftLowerLeg"},
+        {"LeftLowerLeg", "LeftFoot"},
+        {"RightUpperLeg", "RightLowerLeg"},
+        {"RightLowerLeg", "RightFoot"},
+        {"UpperTorso", "LeftUpperArm"},
+        {"UpperTorso", "RightUpperArm"},
+        {"LeftUpperArm", "LeftLowerArm"},
+        {"LeftLowerArm", "LeftHand"},
+        {"RightUpperArm", "RightLowerArm"},
+        {"RightLowerArm", "RightHand"}
+    },
+    R6 = {
+        {"Head", "Torso"},
+        {"Torso", "Left Arm"},
+        {"Torso", "Right Arm"},
+        {"Torso", "Left Leg"},
+        {"Torso", "Right Leg"}
+    }
+}
+
+function ESP:updateComponents(components, character, player)
+    if not ESPEnabled then
+        self:hideComponents(components)
+        return
+    end
+
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    local humanoid = character:FindFirstChild("Humanoid")
+
+    -- FIX: Cari LocalCharacter dan HRP secara Real-time setiap frame
+    local myChar = LocalPlayer.Character
+    local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
+
+    if hrp and humanoid and myHrp then
+        local hrpPosition, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+        local CenterPosition = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 4) 
+
+        if onScreen then
+            local screenWidth, screenHeight = Camera.ViewportSize.X, Camera.ViewportSize.Y
+            local factor = 1 / (hrpPosition.Z * math.tan(math.rad(Camera.FieldOfView * 0.5)) * 2) * 100
+            local width, height = math.floor(screenHeight / 25 * factor), math.floor(screenWidth / 27 * factor)
+            
+            -- FIX: Menghitung jarak menggunakan myHrp yang fresh
+            local distanceFromPlayer = math.floor((myHrp.Position - hrp.Position).magnitude)
+
+            -- 1. BOX
+            if ESPBox then
+                components.Box.Size = Vector2.new(width, height)
+                components.Box.Position = Vector2.new(hrpPosition.X - width / 2, hrpPosition.Y - height / 2)
+                components.Box.Visible = true
+            else
+                components.Box.Visible = false
+            end
+
+            -- 2. TRACER
+            if ESPTracer then
+                components.Tracer.From = CenterPosition
+                components.Tracer.To = Vector2.new(hrpPosition.X, hrpPosition.Y + height / 2)
+                components.Tracer.Visible = true
+            else
+                components.Tracer.Visible = false
+            end
+
+            -- 3. DISTANCE
+            if ESPDistance then
+                components.DistanceLabel.Text = string.format("[%dM]", distanceFromPlayer)
+                components.DistanceLabel.Position = Vector2.new(hrpPosition.X, hrpPosition.Y + height / 2 + 15)
+                components.DistanceLabel.Visible = true
+            else
+                components.DistanceLabel.Visible = false
+            end
+
+            -- 4. NAME
+            if ESPName then
+                components.NameLabel.Text = string.format("[%s]", player.Name)
+                components.NameLabel.Position = Vector2.new(hrpPosition.X, hrpPosition.Y - height / 2 - 15)
+                components.NameLabel.Visible = true
+            else
+                components.NameLabel.Visible = false
+            end
+
+            -- 5. HEALTH BAR
+            if ESPHealthBar then
+                local healthBarHeight = height
+                local healthBarWidth = 5
+                local healthFraction = humanoid.Health / humanoid.MaxHealth
+
+                components.HealthBar.Outline.Size = Vector2.new(healthBarWidth, healthBarHeight)
+                components.HealthBar.Outline.Position = Vector2.new(components.Box.Position.X - healthBarWidth - 2, components.Box.Position.Y)
+                components.HealthBar.Outline.Visible = true
+
+                components.HealthBar.Health.Size = Vector2.new(healthBarWidth - 2, healthBarHeight * healthFraction)
+                components.HealthBar.Health.Position = Vector2.new(components.HealthBar.Outline.Position.X + 1, components.HealthBar.Outline.Position.Y + healthBarHeight * (1 - healthFraction))
+                components.HealthBar.Health.Visible = true
+            else
+                components.HealthBar.Outline.Visible = false
+                components.HealthBar.Health.Visible = false
+            end
+
+            -- 6. SKELETON
+            if ESPSkeleton then
+                local connections = bodyConnections[humanoid.RigType.Name] or {}
+                for _, connection in ipairs(connections) do
+                    local partA = character:FindFirstChild(connection[1])
+                    local partB = character:FindFirstChild(connection[2])
+                    if partA and partB then
+                        local lineKey = connection[1] .. "-" .. connection[2]
+                        local line = components.SkeletonLines[lineKey] or self:createDrawing("Line", {Thickness = 1, Color = Color3.fromRGB(255, 255, 255)})
+                        local posA, onScreenA = Camera:WorldToViewportPoint(partA.Position)
+                        local posB, onScreenB = Camera:WorldToViewportPoint(partB.Position)
+                        if onScreenA and onScreenB then
+                            line.From = Vector2.new(posA.X, posA.Y)
+                            line.To = Vector2.new(posB.X, posB.Y)
+                            line.Visible = true
+                            components.SkeletonLines[lineKey] = line
+                        else
+                            line.Visible = false
+                        end
+                    end
+                end
+            else
+                for _, line in pairs(components.SkeletonLines) do
+                    line.Visible = false
+                end
+            end
+        else
+            self:hideComponents(components)
+        end
+    else
+        self:hideComponents(components)
+    end
+end
+
+function ESP:hideComponents(components)
+    components.Box.Visible = false
+    components.Tracer.Visible = false
+    components.DistanceLabel.Visible = false
+    components.NameLabel.Visible = false
+    components.HealthBar.Outline.Visible = false
+    components.HealthBar.Health.Visible = false
+
+    for _, line in pairs(components.SkeletonLines) do
+        line.Visible = false
+    end
+end
+
+function ESP:removeEsp(player)
+    local components = self.espCache[player]
+    if components then
+        components.Box:Remove()
+        components.Tracer:Remove()
+        components.DistanceLabel:Remove()
+        components.NameLabel:Remove()
+        components.HealthBar.Outline:Remove()
+        components.HealthBar.Health:Remove()
+        for _, line in pairs(components.SkeletonLines) do
+            line:Remove()
+        end
+        self.espCache[player] = nil
+    end
+end
+
+local espInstance = ESP.new()
+
+RunService.RenderStepped:Connect(function()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local character = player.Character
+            if character then
+                if not espInstance.espCache[player] then
+                    espInstance.espCache[player] = espInstance:createComponents()
+                end
+                espInstance:updateComponents(espInstance.espCache[player], character, player)
+            else
+                if espInstance.espCache[player] then
+                    espInstance:hideComponents(espInstance.espCache[player])
+                end
+            end
+        end
+    end
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    espInstance:removeEsp(player)
+end)
+
+-- -- --- TAB 4: SETTING (FIXED ANTI SWIM) ---
+local SettingTab = Window:Tab({ Title = "Setting", Icon = "solar:settings-bold" })
+
+-- Variables
+local AntiSwimEnabled = false
+local AntiAdminEnabled = false
+local AntiAFKEnabled = false
+
+-- 1. Anti Admin
+SettingTab:Toggle({ Title = "Anti Admin (Mega-Blacklist)", Value = false, Callback = function(s) AntiAdminEnabled = s end })
+
+-- 2. Anti-AFK
+SettingTab:Toggle({ Title = "Anti-AFK (No Kick)", Value = false, Callback = function(s) AntiAFKEnabled = s end })
+
+-- === SECTION: WATER TOOLS ===
+local WaterSection = SettingTab:Section({ Title = "Water Tools", Side = "Left" })
+
+-- 3. Anti Swim (Force Walk & Sink)
+WaterSection:Toggle({ Title = "Anti Swim (Force Walk)", Value = false, Callback = function(s)
+    AntiSwimEnabled = s
+    
+    local Player = game:GetService("Players").LocalPlayer
+    
+    if s then
+        -- JALANKAN ANTI SWIM
+        task.spawn(function()
+            while AntiSwimEnabled do
+                task.wait(0.1)
+                local char = Player.Character
+                local hum = char and char:FindFirstChild("Humanoid")
+                
+                if hum then
+                    -- Matikan kemampuan berenang
+                    hum:SetStateEnabled(Enum.HumanoidStateType.Swimming, false)
+                    
+                    -- Jika sedang di air, paksa ke mode jalan
+                    if hum:GetState() == Enum.HumanoidStateType.Swimming then
+                        hum:ChangeState(Enum.HumanoidStateType.Running)
+                    end
+                    
+                    -- Buat Karakter Berat (Agar Tenggelam/Bisa Jalan di Dasar)
+                    for _, v in pairs(char:GetChildren()) do
+                        if v:IsA("BasePart") then
+                            v.CustomPhysicalProperties = PhysicalProperties.new(100, 0.3, 0.5)
+                        end
+                    end
+                end
+            end
+        end)
+    else
+        -- RESET (SAAT DI-OFF KAN)
+        local char = Player.Character
+        local hum = char and char:FindFirstChild("Humanoid")
+        
+        if hum then
+            -- Aktifkan kembali kemampuan berenang
+            hum:SetStateEnabled(Enum.HumanoidStateType.Swimming, true)
+            -- Paksa refresh state agar bisa langsung berenang lagi
+            hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+        end
+        
+        -- Kembalikan berat karakter ke Normal
+        if char then
+            for _, v in pairs(char:GetChildren()) do
+                if v:IsA("BasePart") then
+                    v.CustomPhysicalProperties = nil -- Reset ke default roblox
+                end
+            end
+        end
+    end
+end })
+
+-- === SECTION: INTERFACE ===
+local UISection = SettingTab:Section({ Title = "Interface", Side = "Right" })
+UISection:Dropdown({
+    Title = "Theme Changer",
+    Values = { "Dark", "Light", "Rose", "Plant", "Red", "Indigo", "Sky", "Violet", "Amber", "Emerald", "Midnight", "Crimson", "Monokai Pro", "Cotton Candy", "Rainbow" },
+    Value = "Crimson",
+    Callback = function(option) WindUI:SetTheme(tostring(option)) end
+})
+
+-- */ 4. PERFORMANCE & INFO LOGS /* --
+local lastIteration, frameCount = tick(), 0
+RunService.Heartbeat:Connect(function()
+    frameCount = frameCount + 1
+    if tick() - lastIteration >= 1 then
+        FPSParagraph:SetDesc("FPS: " .. tostring(frameCount))
+        frameCount = 0
+        lastIteration = tick()
+    end
+end)
+
+task.spawn(function()
+    while task.wait(0.5) do
+        local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildWhichIsA("Tool")
+        RodParagraph:SetDesc(tool and "Detected: " .. tool.Name or "Detected: None")
+        local count = 0
+        local bp = LocalPlayer:FindFirstChild("Backpack")
+        if bp then for _, item in pairs(bp:GetChildren()) do if string.find(item.Name:lower(), "fish") or string.find(item.Name:lower(), "ikan") then count = count + 1 end end end
+        IkanParagraph:SetDesc("Ikan: " .. tostring(count))
+    end
+end)
+
+-- */ 5. FIX ANTI-ADMIN (KICK + SHUTDOWN) & ANTI-AFK /* --
+task.spawn(function()
+    while true do
+        if AntiAdminEnabled then
+            for _, player in pairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer then
+                    for _, adminName in pairs(Blacklist) do
+                        if player.Name:lower() == adminName:lower() then
+                            -- Pesan Kick
+                            LocalPlayer:Kick("\n[REU PROTEKSI]\nAdmin Terdeteksi: @" .. player.Name .. "\nMelakukan Shutdown Otomatis...")
+                            task.wait(0.1)
+                            -- Shutdown Total (Keluar Game)
+                            game:Shutdown()
+                        end
+                    end
+                end
+            end
+        end
+        task.wait(0.1) -- Scan super cepat (0.1 detik)
+    end
+end)
+
+LocalPlayer.Idled:Connect(function()
+    if AntiAFKEnabled then
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new())
+    end
+end)
+
+-- */ 6. AUTO FISHING LOGIC (ASLI) /* --
+local function InstantThrow()
+    if not AutoFishingEnabled then return end
+    pcall(function()
+        local Rod = LocalPlayer.Character:FindFirstChildWhichIsA("Tool")
+        if Rod and string.find(Rod.Name:lower(), "rod") then
+            RodRemote:FireServer("Throw", Rod, workspace:WaitForChild("Terrain"))
+        end
+    end)
+end
+LocalPlayer.Character.ChildAdded:Connect(function(c) if AutoFishingEnabled and c:IsA("Tool") and string.find(c.Name:lower(), "rod") then task.wait(0.3); InstantThrow() end end)
+PlayerGui.DescendantRemoving:Connect(function(d) if AutoFishingEnabled and (d.Name == "WhiteBar" or d.Name == "Reeling") then task.wait(1.1); InstantThrow() end end)
+
+Window:SelectTab(InfoTab)                    wb.Size = UDim2.new(0.3, 0, wb.Size.Y.Scale, wb.Size.Y.Offset)
                     if rb then
                         local pos = rb.Position.X.Scale + (rb.Size.X.Scale / 2) - (wb.Size.X.Scale / 2)
                         wb.Position = UDim2.new(pos, wb.Position.X.Offset, wb.Position.Y.Scale, wb.Position.Y.Offset)
