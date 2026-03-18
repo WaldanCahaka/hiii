@@ -199,6 +199,100 @@ ShopTab:Dropdown({
 })
 ShopTab:Button({ Title = "Purchase Selected Rod", Callback = function() RodShopRemote:InvokeServer("Buy", SelectedRod) end })
 
+-- --- TAB 4: AUTOMATION & AFK ---
+local AFKTab = Window:Tab({ Title = "Anti AFK", Icon = "solar:ghost-bold" })
+
+AFKTab:Paragraph({ 
+    Title = "Anti-AFK System", 
+    Desc = "Mencegah 'Disconnected' karena idle selama 20 menit." 
+})
+
+-- Inisialisasi Paragraf Status (Dibuat dulu agar bisa diupdate di dalam toggle)
+local AFKStatus = AFKTab:Paragraph({ 
+    Title = "AFK Status", 
+    Desc = "Status: Monitoring...", 
+    Image = "solar:clock-circle-bold" 
+})
+
+-- TOGGLE DENGAN LOGIC DI DALAMNYA
+AFKTab:Toggle({ 
+    Title = "Enable Anti-AFK", 
+    Value = false, 
+    Callback = function(s) 
+        AntiAFKEnabled = s 
+        
+        if s then
+            WindUI:Notify({
+                Title = "Anti-AFK Active",
+                Content = "Karakter kamu sekarang aman dari kick idle.",
+                Duration = 3
+            })
+            
+            -- LOGIC TIMER LANGSUNG DI DALAM TOGGLE ON
+            task.spawn(function()
+                local secondsIdle = 0
+                while AntiAFKEnabled do
+                    task.wait(1)
+                    local char = LocalPlayer.Character
+                    local hum = char and char:FindFirstChild("Humanoid")
+                    
+                    -- Reset jika bergerak
+                    if hum and hum.MoveDirection.Magnitude > 0 then
+                        secondsIdle = 0
+                        AFKStatus:SetDesc("Status: Active (Moving...)")
+                    else
+                        -- Hitung jika diam
+                        secondsIdle = secondsIdle + 1
+                        local mins = math.floor(secondsIdle / 60)
+                        local secs = secondsIdle % 60
+                        
+                        AFKStatus:SetDesc(string.format("Status: Idle for %02d:%02d", mins, secs))
+                        
+                        -- Simulasi Input tiap 60 detik
+                        if secondsIdle > 0 and secondsIdle % 60 == 0 then
+                            VirtualUser:CaptureController()
+                            VirtualUser:ClickButton2(Vector2.new())
+                        end
+                    end
+                end
+            end)
+        else
+            -- Reset tampilan saat OFF
+            AFKStatus:SetDesc("Status: Anti-AFK Disabled")
+        end
+    end 
+})
+
+AFKTab:Paragraph({ 
+    Title = "Server Utility", 
+    Desc = "Fitur tambahan untuk kenyamanan farming." 
+})
+
+AFKTab:Button({ 
+    Title = "Rejoin Server", 
+    Callback = function() 
+        game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer) 
+    end 
+})
+
+AFKTab:Button({ 
+    Title = "Server Hop (Cari Server Baru)", 
+    Callback = function() 
+        -- Logika sederhana mencari server lain
+        local Http = game:GetService("HttpService")
+        local TPS = game:GetService("TeleportService")
+        local Api = "https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Desc&limit=100"
+        local _s = Http:JSONDecode(game:HttpGet(Api))
+        for _, v in pairs(_s.data) do
+            if v.playing < v.maxPlayers then
+                TPS:TeleportToPlaceInstance(game.PlaceId, v.id)
+                break
+            end
+        end
+    end 
+})
+
+
 -- --- TAB 5: ESP SYSTEM (FIXED DISTANCE LOGIC) ---
 local ESPTab = Window:Tab({ Title = "Visual", Icon = "solar:eye-bold" })
 
@@ -581,7 +675,7 @@ local WaterPart = nil
 -- =========================================
 -- ANTI SWIM
 -- =========================================
-WaterMoveSection:Toggle({ 
+MoveTab:Toggle({ 
     Title = "Anti-Swim (Deep Walk)", 
     Value = false, 
     Callback = function(s) 
@@ -633,7 +727,7 @@ WaterMoveSection:Toggle({
 -- =========================================
 -- WALK ON WATER
 -- =========================================
-WaterMoveSection:Toggle({ 
+MoveTab:Toggle({ 
     Title = "Walk on Water (Solid)", 
     Value = false, 
     Callback = function(s) 
@@ -675,7 +769,7 @@ WaterMoveSection:Toggle({
 })
 
 -- =========================================
--- GHOST ENGINE
+-- GHOST ENGINE (FIXED SPEED LOGIC)
 -- =========================================
 RunService.Heartbeat:Connect(function()
     local char = LocalPlayer.Character
@@ -683,7 +777,7 @@ RunService.Heartbeat:Connect(function()
     local hum = char and char:FindFirstChild("Humanoid")
     if not hrp or not hum then return end
 
-    -- Noclip
+    -- Noclip Logic
     if noclipBypassActive then
         for _, part in pairs(char:GetDescendants()) do
             if part:IsA("BasePart") then
@@ -692,20 +786,25 @@ RunService.Heartbeat:Connect(function()
         end
     end
 
-    -- Speed System
-    if (speedBypassActive or cframeEnabled) and hum.MoveDirection.Magnitude > 0 then
-        local targetSpeed = speedBypassActive and customWalkspeed or (16 + speed)
+    -- Speed System Logic
+    if (speedBypassActive or cframeEnabled) then
+        if hum.MoveDirection.Magnitude > 0 then
+            local targetSpeed = speedBypassActive and customWalkspeed or (16 + speed)
 
-        local moveVel = hum.MoveDirection * targetSpeed
-        hrp.Velocity = Vector3.new(moveVel.X, hrp.Velocity.Y, moveVel.Z)
+            -- Metode Velocity & CFrame Lerp (Bypass)
+            local moveVel = hum.MoveDirection * targetSpeed
+            hrp.Velocity = Vector3.new(moveVel.X, hrp.Velocity.Y, moveVel.Z)
+            hrp.CFrame = hrp.CFrame:Lerp(hrp.CFrame + (hum.MoveDirection * 0.1), 0.5)
 
-        hrp.CFrame = hrp.CFrame:Lerp(hrp.CFrame + (hum.MoveDirection * 0.1), 0.5)
-
-        hum.WalkSpeed = 16
+            -- Saat bypass aktif, kita kunci ke 16 agar tidak terpantau Anticheat
+            hum.WalkSpeed = 16
+        end
     else
-        hum.WalkSpeed = 16
+        -- PENTING: Jika Toggle OFF, jangan paksa WalkSpeed ke 16! 
+        -- Biarkan nilai aslinya tetap atau diatur oleh server/item game.
     end
 end)
+
 
 -- =========================================
 -- UI CONTROL
@@ -763,52 +862,13 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
-MoveTab:Toggle({ 
-    Title = "Enable CFrame Speed", 
-    Callback = function(state) 
-        cframeEnabled = state 
-    end 
-})
-
-MoveTab:Slider({ 
-    Title = "CFrame Speed", 
-    Step = 1, 
-    Value = { Min = 1, Max = 150, Default = 5 }, 
-    Callback = function(v) 
-        speed = v 
-    end 
-})
-
-MoveTab:Input({ 
-    Title = "Manual CFrame Speed", 
-    Callback = function(txt) 
-        local num = tonumber(txt) 
-        if num then speed = num end 
-    end 
-})
-
 -- -- --- TAB: SETTINGS --- --
 local SettingTab = Window:Tab({ Title = "Settings", Icon = "solar:settings-bold" })
-
--- 1. Automation & AFK Section
-SettingTab:Paragraph({ 
-    Title = "Automation & AFK", 
-    Content = "Menjaga karakter tetap aktif agar tidak terkena kick oleh sistem Roblox." 
-})
-
-SettingTab:Toggle({ 
-    Title = "Anti-AFK (Stay Active)", 
-    Value = false, 
-    Callback = function(s) 
-        AntiAFKEnabled = s 
-        -- Logic sudah terhubung ke Idled Event di script utama
-    end 
-})
 
 -- 2. Security Section
 SettingTab:Paragraph({ 
     Title = "Security & Protection", 
-    Content = "Fitur pelindung otomatis jika ada Admin atau Staff yang masuk ke server." 
+    Desc = "Fitur pelindung otomatis jika ada Admin atau Staff yang masuk ke server." 
 })
 
 -- -- --- */ SETTINGS: ANTI-STAFF PROTECTION (ULTRA ACTIVE) /* --- --
@@ -826,7 +886,7 @@ end
 -- --- LOGIC SCANNER UTAMA (REAL-TIME LOOP) ---
 task.spawn(function()
     while task.wait(0.5) do -- Scan setiap setengah detik biar gak kecolongan
-        if AntiAdminEnabled then
+        if AntiAdminEnabled2 then
             pcall(function()
                 for _, player in ipairs(Players:GetPlayers()) do
                     -- 1. Jangan cek diri sendiri biar gak kena kick pas pamer badge visual
@@ -857,7 +917,24 @@ end)
 
 -- -- --- */ TOGGLE DI TAB SETTINGS /* --- --
 SettingTab:Toggle({ 
-    Title = "Anti-Staff (Auto Leave)", 
+    Title = "Anti-Staff V1(Badges)", 
+    Value = false, 
+    Callback = function(s) 
+        AntiAdminEnabled2 = s 
+        
+        if s then
+            WindUI:Notify({
+                Title = "Security Active", 
+                Content = "Scanning server for staff badges...", 
+                Duration = 2
+            })
+        end
+    end 
+})
+
+-- -- --- */ TOGGLE DI TAB SETTINGS /* --- --
+SettingTab:Toggle({ 
+    Title = "Anti-Staff V2(Username)", 
     Value = false, 
     Callback = function(s) 
         AntiAdminEnabled = s 
@@ -872,12 +949,10 @@ SettingTab:Toggle({
     end 
 })
 
-
-
 -- 3. Interface Section
 SettingTab:Paragraph({ 
     Title = "Interface Customization", 
-    Content = "Pilih warna tema yang kamu suka untuk tampilan menu WzxX." 
+    Desc = "Pilih warna tema yang kamu suka untuk tampilan menu WzxX." 
 })
 
 SettingTab:Dropdown({
@@ -892,7 +967,7 @@ SettingTab:Dropdown({
 -- 4. Information Section
 SettingTab:Paragraph({ 
     Title = "Script Info", 
-    Content = "Arsitek Utama: WzxX\nVersion: 1.2 Final State\nStatus: Secure" 
+    Desc = "Arsitek Utama: WzxX\nVersion: 1.2 Final State\nStatus: Secure" 
 })
 
 
@@ -943,10 +1018,7 @@ task.spawn(function()
                     for _, adminName in pairs(Blacklist) do
                         if player.Name:lower() == adminName:lower() then
                             -- Pesan Kick
-                            LocalPlayer:Kick("\n[REU PROTEKSI]\nAdmin Terdeteksi: @" .. player.Name .. "\nMelakukan Shutdown Otomatis...")
-                            task.wait(0.1)
-                            -- Shutdown Total (Keluar Game)
-                            game:Shutdown()
+                            LocalPlayer:Kick("\n[WzxX SECURITY]\nAdmin Terdeteksi: @" .. player.Name)
                         end
                     end
                 end
@@ -963,34 +1035,56 @@ LocalPlayer.Idled:Connect(function()
     end
 end)
 
--- */ UPDATE: AUTO FISHING LOGIC (Anti-Gagal) /* --
+-- */ UPDATE: AUTO FISHING LOGIC (FIXED FOR RESPAWN/DEATH) /* --
+
 local function InstantThrow()
     if not AutoFishingEnabled then return end
-    pcall(function()
-        local char = LocalPlayer.Character
-        local Rod = char and char:FindFirstChildWhichIsA("Tool")
-        
-        -- Perbaikan: Cari kata "rod" secara fleksibel (Basic Rod, dsb)
-        if Rod and string.find(string.lower(Rod.Name), "rod") then
+    
+    -- Selalu ambil Character yang paling baru (Fresh)
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local Rod = char:FindFirstChildWhichIsA("Tool")
+    
+    -- Filter: Cari kata "rod" (Case Insensitive)
+    if Rod and string.find(string.lower(Rod.Name), "rod") then
+        pcall(function()
             RodRemote:FireServer("Throw", Rod, workspace:WaitForChild("Terrain"))
+        end)
+    end
+end
+
+-- Fungsi untuk menyambungkan deteksi ke karakter (ChildAdded)
+local function ConnectCharacter(char)
+    char.ChildAdded:Connect(function(c)
+        if AutoFishingEnabled and c:IsA("Tool") and string.find(string.lower(c.Name), "rod") then
+            task.wait(0.5) -- Jeda biar animasi mantap
+            InstantThrow()
         end
     end)
 end
 
--- Trigger pas ganti tool
-LocalPlayer.Character.ChildAdded:Connect(function(c) 
-    if AutoFishingEnabled and c:IsA("Tool") and string.find(string.lower(c.Name), "rod") then 
-        task.wait(0.5) -- Jeda biar animasi mantap
-        InstantThrow() 
-    end 
+-- Jalankan koneksi untuk karakter saat ini
+if LocalPlayer.Character then
+    ConnectCharacter(LocalPlayer.Character)
+end
+
+-- JANTUNG PERBAIKAN: Deteksi kalau player mati dan spawn lagi
+LocalPlayer.CharacterAdded:Connect(function(newCharacter)
+    ConnectCharacter(newCharacter)
+    
+    -- Jika Auto Fishing ON saat baru spawn, langsung cek tangan
+    task.wait(1) 
+    if AutoFishingEnabled then
+        InstantThrow()
+    end
 end)
 
--- Trigger pas mencing selesai (UI hilang)
-PlayerGui.DescendantRemoving:Connect(function(d) 
-    if AutoFishingEnabled and (d.Name == "WhiteBar" or d.Name == "Reeling") then 
-        task.wait(1.2) 
-        InstantThrow() 
-    end 
+-- Trigger pas mancing selesai (UI Reeling/WhiteBar hilang)
+PlayerGui.DescendantRemoving:Connect(function(d)
+    if AutoFishingEnabled and (d.Name == "WhiteBar" or d.Name == "Reeling") then
+        task.wait(1.2)
+        InstantThrow()
+    end
 end)
+
 
 Window:SelectTab(InfoTab)
