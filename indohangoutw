@@ -145,11 +145,19 @@ local Window = WindUI:CreateWindow({
 
 WindUI:SetTheme("Crimson")
 
--- --- TAB 1: INFORMATION ---
+-- ========================================================== --
+-- TAB 1: INFORMATION (Gabungan Info + Settings)
+-- ========================================================== --
 local InfoTab = Window:Tab({ Title = "Information", Icon = "solar:info-circle-bold" })
+
+-- == STATS ==
+InfoTab:Section({Title = "Stats", TextSize = 20, TextXAlignment = "Center"})
 local IkanParagraph = InfoTab:Paragraph({ Title = "Fish Stats", Desc = "Ikan: 0", Image = "solar:box-bold" })
 local FPSParagraph = InfoTab:Paragraph({ Title = "Performance", Desc = "FPS: Calculating...", Image = "solar:chart-square-bold" })
-InfoTab:Slider({ Title = "Set FPS Cap", Step = 5, Value = { Min = 15, Max = 240, Default = 60 }, Callback = function(v) setfpscap(v) end })
+
+-- == SYSTEM ==
+InfoTab:Section({Title = "System", TextSize = 20, TextXAlignment = "Center"}) 
+InfoTab:Slider({IsTooltip = true, Step = 5, Value = {Min = 15, Max = 240, Default = 60}, Icons = {From = "lucide:gauge"}, Callback = function(v) setfpscap(v) end})
 
 InfoTab:Toggle({ 
     Title = "Sembunyikan Effect & Cahaya", 
@@ -169,11 +177,38 @@ InfoTab:Toggle({
     end 
 })
 
+-- == SETTINGS (PINDAHAN DARI TAB SETTINGS) ==
+InfoTab:Section({Title = "Settings", TextSize = 20, TextXAlignment = "Center"})
+
+InfoTab:Paragraph({ 
+    Title = "Interface Customization", 
+    Desc = "Pilih warna tema yang kamu suka untuk tampilan menu WzxX." 
+})
+
+InfoTab:Dropdown({
+    Title = "Theme Color",
+    Values = { "Dark", "Light", "Crimson", "Midnight", "Rainbow" },
+    Value = "Crimson",
+    Callback = function(option) 
+        WindUI:SetTheme(tostring(option)) 
+    end
+})
+
+InfoTab:Paragraph({ 
+    Title = "Script Info", 
+    Desc = "Arsitek Utama: WzxX\nVersion: 1.2 Final State\nStatus: Secure" 
+})
+
 InfoTab:Paragraph({ Title = "Pembaruan // Fix // Add", Desc = "- Added Auto-Shutdown on Admin Detect\n- Ultra Fast Anti-Admin Scan\n- Fixed Anti-AFK Logic\n- Stable for Xeno" })
 
--- --- TAB 2: AUTO FISHING ---
+
+-- ========================================================== --
+-- TAB 2: AUTO FISHING (Gabungan Fishing + Shop)
+-- ========================================================== --
 local FishingTab = Window:Tab({ Title = "Auto Fishing", Icon = "solar:clippy-bold" })
 local RodParagraph = FishingTab:Paragraph({ Title = "Rod Detector", Desc = "Scanning for rod...", Image = "solar:magnifer-bold" })
+
+FishingTab:Section({Title = "Inventory", TextSize = 20, TextXAlignment = "Center"})
 
 local InventoryRods = {}
 local Profile = EquipRemote:InvokeServer("GetPlayerProfile")
@@ -181,482 +216,43 @@ if Profile and Profile.Rod then for _, rName in pairs(Profile.Rod) do table.inse
 
 FishingTab:Dropdown({ Title = "Equip Rod From Inventory", Values = InventoryRods, Value = InventoryRods[1], Callback = function(v) SelectedInventoryRod = v end })
 FishingTab:Button({ Title = "Equip Rod", Callback = function() if SelectedInventoryRod ~= "" and SelectedInventoryRod ~= "No Rods Found" then EquipRemote:InvokeServer("EquipRod", SelectedInventoryRod) end end })
+
+FishingTab:Section({Title = "Auto Fish Settings", TextSize = 20, TextXAlignment = "Center"})
+
 FishingTab:Toggle({ Title = "Enable Auto Fishing", Value = false, Callback = function(s) AutoFishingEnabled = s end })
 FishingTab:Dropdown({ Title = "Bar Mode", Values = {"Normal", "Manual Slider", "Bar Ngikutin Ikan", "Full Bar"}, Value = "Normal", Callback = function(o) BarMode = o end })
 FishingTab:Slider({ Title = "Manual Bar Size", Step = 0.05, Value = { Min = 0.1, Max = 1, Default = 0.5 }, Callback = function(v) ManualBarSize = v end })
 
--- --- TAB 3: SHOP ---
-local ShopTab = Window:Tab({ Title = "Shop", Icon = "solar:shop-bold" })
-ShopTab:Button({ Title = "Sell All Fish", Callback = function() SellRemote:InvokeServer("SellFish", "Sell All") end })
-ShopTab:Dropdown({ Title = "Filter Weight", Values = {"All under 50 Kg", "All under 100 Kg", "All under 400 Kg", "All under 600 Kg"}, Value = "All under 50 Kg", Callback = function(v) SelectedWeight = v end })
-ShopTab:Button({ Title = "Sell Selected Filter", Callback = function() SellRemote:InvokeServer("SellFish", SelectedWeight) end })
-ShopTab:Paragraph({ Title = "Rod Shop", Desc = "Instant buy rods" })
-ShopTab:Dropdown({
+-- == SHOP (PINDAHAN DARI TAB SHOP) ==
+FishingTab:Section({Title = "Fish Market", TextSize = 20, TextXAlignment = "Center"})
+
+FishingTab:Button({ Title = "Sell All Fish", Callback = function() SellRemote:InvokeServer("SellFish", "Sell All") end })
+FishingTab:Dropdown({ Title = "Filter Weight", Values = {"All under 50 Kg", "All under 100 Kg", "All under 400 Kg", "All under 600 Kg"}, Value = "All under 50 Kg", Callback = function(v) SelectedWeight = v end })
+FishingTab:Button({ Title = "Sell Selected Filter", Callback = function() SellRemote:InvokeServer("SellFish", SelectedWeight) end })
+
+FishingTab:Section({Title = "Rod Shop", TextSize = 20, TextXAlignment = "Center"})
+
+FishingTab:Paragraph({ Title = "Rod Shop", Desc = "Instant buy rods" })
+FishingTab:Dropdown({
     Title = "Select Rod",
     Values = {"Duck Rod", "Earth Rod", "Feather Rod", "Flowers Rod", "Party Rod", "Piranha Rod", "Planet Rod", "Shark Rod", "Thermo Rod", "Trisula Rod", "Wave Rod"},
     Value = "Party Rod",
     Callback = function(v) SelectedRod = v end
 })
-ShopTab:Button({ Title = "Purchase Selected Rod", Callback = function() RodShopRemote:InvokeServer("Buy", SelectedRod) end })
-
--- --- TAB 4: AUTOMATION & AFK ---
-local AFKTab = Window:Tab({ Title = "Anti AFK", Icon = "solar:ghost-bold" })
-
-AFKTab:Paragraph({ 
-    Title = "Anti-AFK System", 
-    Desc = "Mencegah 'Disconnected' karena idle selama 20 menit." 
-})
-
--- Inisialisasi Paragraf Status (Dibuat dulu agar bisa diupdate di dalam toggle)
-local AFKStatus = AFKTab:Paragraph({ 
-    Title = "AFK Status", 
-    Desc = "Status: Monitoring...", 
-    Image = "solar:clock-circle-bold" 
-})
-
--- TOGGLE DENGAN LOGIC DI DALAMNYA
-AFKTab:Toggle({ 
-    Title = "Enable Anti-AFK", 
-    Value = false, 
-    Callback = function(s) 
-        AntiAFKEnabled = s 
-        
-        if s then
-            WindUI:Notify({
-                Title = "Anti-AFK Active",
-                Content = "Karakter kamu sekarang aman dari kick idle.",
-                Duration = 3
-            })
-            
-            -- LOGIC TIMER LANGSUNG DI DALAM TOGGLE ON
-            task.spawn(function()
-                local secondsIdle = 0
-                while AntiAFKEnabled do
-                    task.wait(1)
-                    local char = LocalPlayer.Character
-                    local hum = char and char:FindFirstChild("Humanoid")
-                    
-                    -- Reset jika bergerak
-                    if hum and hum.MoveDirection.Magnitude > 0 then
-                        secondsIdle = 0
-                        AFKStatus:SetDesc("Status: Active (Moving...)")
-                    else
-                        -- Hitung jika diam
-                        secondsIdle = secondsIdle + 1
-                        local mins = math.floor(secondsIdle / 60)
-                        local secs = secondsIdle % 60
-                        
-                        AFKStatus:SetDesc(string.format("Status: Idle for %02d:%02d", mins, secs))
-                        
-                        -- Simulasi Input tiap 60 detik
-                        if secondsIdle > 0 and secondsIdle % 60 == 0 then
-                            VirtualUser:CaptureController()
-                            VirtualUser:ClickButton2(Vector2.new())
-                        end
-                    end
-                end
-            end)
-        else
-            -- Reset tampilan saat OFF
-            AFKStatus:SetDesc("Status: Anti-AFK Disabled")
-        end
-    end 
-})
-
-AFKTab:Paragraph({ 
-    Title = "Server Utility", 
-    Desc = "Fitur tambahan untuk kenyamanan farming." 
-})
-
-AFKTab:Button({ 
-    Title = "Rejoin Server", 
-    Callback = function() 
-        game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer) 
-    end 
-})
-
-AFKTab:Button({ 
-    Title = "Server Hop (Cari Server Baru)", 
-    Callback = function() 
-        -- Logika sederhana mencari server lain
-        local Http = game:GetService("HttpService")
-        local TPS = game:GetService("TeleportService")
-        local Api = "https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Desc&limit=100"
-        local _s = Http:JSONDecode(game:HttpGet(Api))
-        for _, v in pairs(_s.data) do
-            if v.playing < v.maxPlayers then
-                TPS:TeleportToPlaceInstance(game.PlaceId, v.id)
-                break
-            end
-        end
-    end 
-})
+FishingTab:Button({ Title = "Purchase Selected Rod", Callback = function() RodShopRemote:InvokeServer("Buy", SelectedRod) end })
 
 
--- --- TAB 5: ESP SYSTEM (FIXED DISTANCE LOGIC) ---
-local ESPTab = Window:Tab({ Title = "Visual", Icon = "solar:eye-bold" })
+-- ========================================================== --
+-- TAB 3: MOVEMENT (Gabungan Movement + Teleport)
+-- ========================================================== --
+local MovementTab = Window:Tab({ Title = "Movement", Icon = "solar:walking-bold" })
+local MoveTab = MovementTab
 
--- ESP VARIABLES
-local ESPEnabled = false
-local ESPBox = false
-local ESPTracer = false
-local ESPDistance = false
-local ESPSkeleton = false
-local ESPName = false
-local ESPHealthBar = false
+MoveTab:Section({Title = "Movement", TextSize = 20, TextXAlignment = "Center" })
 
--- === BAGIAN 1: UI CONTROLS ===
-
--- SECTION 1: MAIN SETTINGS
-local MainSection = ESPTab:Section({ Title = "Main Settings", Side = "Left" })
-MainSection:Toggle({ Title = "Enable ESP", Value = false, Callback = function(s) ESPEnabled = s end })
-MainSection:Toggle({ Title = "Show Box", Value = false, Callback = function(s) ESPBox = s end })
-MainSection:Toggle({ Title = "Show Tracer (Locked Center)", Value = false, Callback = function(s) ESPTracer = s end })
-MainSection:Toggle({ Title = "Show Skeleton", Value = false, Callback = function(s) ESPSkeleton = s end })
-MainSection:Toggle({ Title = "Show Health Bar", Value = false, Callback = function(s) ESPHealthBar = s end })
-MainSection:Toggle({ Title = "Show Name", Value = false, Callback = function(s) ESPName = s end })
-MainSection:Toggle({ Title = "Show Distance (Fixed)", Value = false, Callback = function(s) ESPDistance = s end })
-
--- --- SECTION NAMETAG VISUAL (FOR SELF) ---
-local NameTagSection = ESPTab:Section({ Title = "NameTag Visual (Self)", Side = "Left" })
-
--- Fungsi Otomatis Cari Nama Lo di Workspace
-local function SetMyBadge(badgeName, state)
-    pcall(function()
-        local myName = game.Players.LocalPlayer.Name
-        -- Sekarang dia nyari folder sesuai NAMA LO SENDIRI di Workspace
-        local myCharacterFolder = workspace:FindFirstChild(myName)
-        
-        if myCharacterFolder then
-            local badge = myCharacterFolder.Head.NameTag.Badges:FindFirstChild(badgeName)
-            if badge then
-                badge.Visible = state
-            end
-        else
-            -- Kalau folder nama lo gak ketemu, coba cari langsung di Character lo
-            local char = game.Players.LocalPlayer.Character
-            local badge = char and char.Head.NameTag.Badges:FindFirstChild(badgeName)
-            if badge then
-                badge.Visible = state
-            end
-        end
-    end)
-end
-
-NameTagSection:Toggle({ 
-    Title = "Get Admin Badge", 
-    Value = false, 
-    Callback = function(s) 
-        SetMyBadge("Admin", s)
-    end 
-})
-
-NameTagSection:Toggle({ 
-    Title = "Get Vip Badge", 
-    Value = false, 
-    Callback = function(s) 
-        SetMyBadge("Vip", s)
-    end 
-})
-
-NameTagSection:Toggle({ 
-    Title = "Get Sponsored Badge", 
-    Value = false, 
-    Callback = function(s) 
-        SetMyBadge("Sponsored", s)
-    end 
-})
-
-NameTagSection:Toggle({ 
-    Title = "Get HeadAdmin Badge", 
-    Value = false, 
-    Callback = function(s) 
-        SetMyBadge("HeadAdmin", s)
-    end 
-})
-
-NameTagSection:Toggle({ 
-    Title = "Get Developer Badge", 
-    Value = false, 
-    Callback = function(s) 
-        SetMyBadge("Developer", s)
-    end 
-})
-
-NameTagSection:Toggle({ 
-    Title = "Get Verified Badge", 
-    Value = false, 
-    Callback = function(s) 
-        SetMyBadge("Verified", s)
-    end 
-})
-
-
--- === BAGIAN 2: LOGIC & RENDERING (FIXED) ===
-
-local Camera = workspace.CurrentCamera
-
-local ESP = {}
-ESP.__index = ESP
-
-function ESP.new()
-    local self = setmetatable({}, ESP)
-    self.espCache = {}
-    return self
-end
-
-function ESP:createDrawing(type, properties)
-    local drawing = Drawing.new(type)
-    for prop, val in pairs(properties) do
-        drawing[prop] = val
-    end
-    return drawing
-end
-
-function ESP:createComponents()
-    return {
-        Box = self:createDrawing("Square", {
-            Thickness = 1,
-            Transparency = 1,
-            Color = Color3.fromRGB(255, 255, 255),
-            Filled = false
-        }),
-        Tracer = self:createDrawing("Line", {
-            Thickness = 1,
-            Transparency = 1,
-            Color = Color3.fromRGB(255, 0, 0) 
-        }),
-        DistanceLabel = self:createDrawing("Text", {
-            Size = 18,
-            Center = true,
-            Outline = true,
-            Color = Color3.fromRGB(255, 255, 255),
-            OutlineColor = Color3.fromRGB(0, 0, 0)
-        }),
-        NameLabel = self:createDrawing("Text", {
-            Size = 18,
-            Center = true,
-            Outline = true,
-            Color = Color3.fromRGB(255, 255, 255),
-            OutlineColor = Color3.fromRGB(0, 0, 0)
-        }),
-        HealthBar = {
-            Outline = self:createDrawing("Square", {
-                Thickness = 1,
-                Transparency = 1,
-                Color = Color3.fromRGB(0, 0, 0),
-                Filled = false
-            }),
-            Health = self:createDrawing("Square", {
-                Thickness = 1,
-                Transparency = 1,
-                Color = Color3.fromRGB(0, 255, 0),
-                Filled = true
-            })
-        },
-        SkeletonLines = {}
-    }
-end
-
-local bodyConnections = {
-    R15 = {
-        {"Head", "UpperTorso"},
-        {"UpperTorso", "LowerTorso"},
-        {"LowerTorso", "LeftUpperLeg"},
-        {"LowerTorso", "RightUpperLeg"},
-        {"LeftUpperLeg", "LeftLowerLeg"},
-        {"LeftLowerLeg", "LeftFoot"},
-        {"RightUpperLeg", "RightLowerLeg"},
-        {"RightLowerLeg", "RightFoot"},
-        {"UpperTorso", "LeftUpperArm"},
-        {"UpperTorso", "RightUpperArm"},
-        {"LeftUpperArm", "LeftLowerArm"},
-        {"LeftLowerArm", "LeftHand"},
-        {"RightUpperArm", "RightLowerArm"},
-        {"RightLowerArm", "RightHand"}
-    },
-    R6 = {
-        {"Head", "Torso"},
-        {"Torso", "Left Arm"},
-        {"Torso", "Right Arm"},
-        {"Torso", "Left Leg"},
-        {"Torso", "Right Leg"}
-    }
-}
-
-function ESP:updateComponents(components, character, player)
-    if not ESPEnabled then
-        self:hideComponents(components)
-        return
-    end
-
-    local hrp = character:FindFirstChild("HumanoidRootPart")
-    local humanoid = character:FindFirstChild("Humanoid")
-
-    -- FIX: Cari LocalCharacter dan HRP secara Real-time setiap frame
-    local myChar = LocalPlayer.Character
-    local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
-
-    if hrp and humanoid and myHrp then
-        local hrpPosition, onScreen = Camera:WorldToViewportPoint(hrp.Position)
-        local CenterPosition = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 4) 
-
-        if onScreen then
-            local screenWidth, screenHeight = Camera.ViewportSize.X, Camera.ViewportSize.Y
-            local factor = 1 / (hrpPosition.Z * math.tan(math.rad(Camera.FieldOfView * 0.5)) * 2) * 100
-            local width, height = math.floor(screenHeight / 25 * factor), math.floor(screenWidth / 27 * factor)
-            
-            -- FIX: Menghitung jarak menggunakan myHrp yang fresh
-            local distanceFromPlayer = math.floor((myHrp.Position - hrp.Position).magnitude)
-
-            -- 1. BOX
-            if ESPBox then
-                components.Box.Size = Vector2.new(width, height)
-                components.Box.Position = Vector2.new(hrpPosition.X - width / 2, hrpPosition.Y - height / 2)
-                components.Box.Visible = true
-            else
-                components.Box.Visible = false
-            end
-
-            -- 2. TRACER
-            if ESPTracer then
-                components.Tracer.From = CenterPosition
-                components.Tracer.To = Vector2.new(hrpPosition.X, hrpPosition.Y + height / 2)
-                components.Tracer.Visible = true
-            else
-                components.Tracer.Visible = false
-            end
-
-            -- 3. DISTANCE
-            if ESPDistance then
-                components.DistanceLabel.Text = string.format("[%dM]", distanceFromPlayer)
-                components.DistanceLabel.Position = Vector2.new(hrpPosition.X, hrpPosition.Y + height / 2 + 15)
-                components.DistanceLabel.Visible = true
-            else
-                components.DistanceLabel.Visible = false
-            end
-
-            -- 4. NAME
-            if ESPName then
-                components.NameLabel.Text = string.format("[%s]", player.Name)
-                components.NameLabel.Position = Vector2.new(hrpPosition.X, hrpPosition.Y - height / 2 - 15)
-                components.NameLabel.Visible = true
-            else
-                components.NameLabel.Visible = false
-            end
-
-            -- 5. HEALTH BAR
-            if ESPHealthBar then
-                local healthBarHeight = height
-                local healthBarWidth = 5
-                local healthFraction = humanoid.Health / humanoid.MaxHealth
-
-                components.HealthBar.Outline.Size = Vector2.new(healthBarWidth, healthBarHeight)
-                components.HealthBar.Outline.Position = Vector2.new(components.Box.Position.X - healthBarWidth - 2, components.Box.Position.Y)
-                components.HealthBar.Outline.Visible = true
-
-                components.HealthBar.Health.Size = Vector2.new(healthBarWidth - 2, healthBarHeight * healthFraction)
-                components.HealthBar.Health.Position = Vector2.new(components.HealthBar.Outline.Position.X + 1, components.HealthBar.Outline.Position.Y + healthBarHeight * (1 - healthFraction))
-                components.HealthBar.Health.Visible = true
-            else
-                components.HealthBar.Outline.Visible = false
-                components.HealthBar.Health.Visible = false
-            end
-
-            -- 6. SKELETON
-            if ESPSkeleton then
-                local connections = bodyConnections[humanoid.RigType.Name] or {}
-                for _, connection in ipairs(connections) do
-                    local partA = character:FindFirstChild(connection[1])
-                    local partB = character:FindFirstChild(connection[2])
-                    if partA and partB then
-                        local lineKey = connection[1] .. "-" .. connection[2]
-                        local line = components.SkeletonLines[lineKey] or self:createDrawing("Line", {Thickness = 1, Color = Color3.fromRGB(255, 255, 255)})
-                        local posA, onScreenA = Camera:WorldToViewportPoint(partA.Position)
-                        local posB, onScreenB = Camera:WorldToViewportPoint(partB.Position)
-                        if onScreenA and onScreenB then
-                            line.From = Vector2.new(posA.X, posA.Y)
-                            line.To = Vector2.new(posB.X, posB.Y)
-                            line.Visible = true
-                            components.SkeletonLines[lineKey] = line
-                        else
-                            line.Visible = false
-                        end
-                    end
-                end
-            else
-                for _, line in pairs(components.SkeletonLines) do
-                    line.Visible = false
-                end
-            end
-        else
-            self:hideComponents(components)
-        end
-    else
-        self:hideComponents(components)
-    end
-end
-
-function ESP:hideComponents(components)
-    components.Box.Visible = false
-    components.Tracer.Visible = false
-    components.DistanceLabel.Visible = false
-    components.NameLabel.Visible = false
-    components.HealthBar.Outline.Visible = false
-    components.HealthBar.Health.Visible = false
-
-    for _, line in pairs(components.SkeletonLines) do
-        line.Visible = false
-    end
-end
-
-function ESP:removeEsp(player)
-    local components = self.espCache[player]
-    if components then
-        components.Box:Remove()
-        components.Tracer:Remove()
-        components.DistanceLabel:Remove()
-        components.NameLabel:Remove()
-        components.HealthBar.Outline:Remove()
-        components.HealthBar.Health:Remove()
-        for _, line in pairs(components.SkeletonLines) do
-            line:Remove()
-        end
-        self.espCache[player] = nil
-    end
-end
-
-local espInstance = ESP.new()
-
-RunService.RenderStepped:Connect(function()
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            local character = player.Character
-            if character then
-                if not espInstance.espCache[player] then
-                    espInstance.espCache[player] = espInstance:createComponents()
-                end
-                espInstance:updateComponents(espInstance.espCache[player], character, player)
-            else
-                if espInstance.espCache[player] then
-                    espInstance:hideComponents(espInstance.espCache[player])
-                end
-            end
-        end
-    end
-end)
-
-Players.PlayerRemoving:Connect(function(player)
-    espInstance:removeEsp(player)
-end)
-
--- SERVICES (WAJIB)
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
+-- Logic Variables
+local WaterPart = nil
 local UserInputService = game:GetService("UserInputService")
-local LocalPlayer = Players.LocalPlayer
-
--- GLOBAL VAR
 local cframeEnabled = false
 local speed = 5
 local customWalkspeed = 16
@@ -664,55 +260,37 @@ local noclipBypassActive = false
 local speedBypassActive = false
 local infJumpEnabled = false
 
--- -- --- TAB 1: MOVEMENT (FIXED LOGIC) --- --
-local MovementTab = Window:Tab({ Title = "Movement", Icon = "solar:walking-bold" })
-local MoveTab = MovementTab
-local WaterMoveSection = MovementTab:Section({ Title = "Water Movement", Side = "Left" })
-
--- Logic Variables
-local WaterPart = nil
-
--- =========================================
--- ANTI SWIM
--- =========================================
 MoveTab:Toggle({ 
-    Title = "Anti-Swim (Deep Walk)", 
+    Title = "Walk UnderWater", 
     Value = false, 
     Callback = function(s) 
-        AntiSwimEnabled = s 
-        
+        local AntiSwimEnabled = s 
         if AntiSwimEnabled then
             task.spawn(function()
                 while AntiSwimEnabled do
                     local char = LocalPlayer.Character
                     local hum = char and char:FindFirstChild("Humanoid")
-
                     if hum then
                         hum:SetStateEnabled(Enum.HumanoidStateType.Swimming, false)
-
                         if hum:GetState() == Enum.HumanoidStateType.Swimming then
                             hum:ChangeState(Enum.HumanoidStateType.Running)
                         end
-
                         for _, v in pairs(char:GetChildren()) do
                             if v:IsA("BasePart") then
                                 v.CustomPhysicalProperties = PhysicalProperties.new(100, 0.3, 0.5)
                             end
                         end
                     end
-
                     task.wait(0.15)
                 end
             end)
         else
             local char = LocalPlayer.Character
             local hum = char and char:FindFirstChild("Humanoid")
-
             if hum then
                 hum:SetStateEnabled(Enum.HumanoidStateType.Swimming, true)
                 hum:ChangeState(Enum.HumanoidStateType.GettingUp)
             end
-
             if char then
                 for _, v in pairs(char:GetChildren()) do
                     if v:IsA("BasePart") then
@@ -724,15 +302,11 @@ MoveTab:Toggle({
     end 
 })
 
--- =========================================
--- WALK ON WATER
--- =========================================
 MoveTab:Toggle({ 
     Title = "Walk on Water (Solid)", 
     Value = false, 
     Callback = function(s) 
-        WalkOnWaterEnabled = s 
-        
+        local WalkOnWaterEnabled = s 
         if WalkOnWaterEnabled then
             WaterPart = Instance.new("Part")
             WaterPart.Size = Vector3.new(10,1,10)
@@ -745,7 +319,6 @@ MoveTab:Toggle({
                 while WalkOnWaterEnabled do
                     local char = LocalPlayer.Character
                     local root = char and char:FindFirstChild("HumanoidRootPart")
-
                     if root then
                         local ray = workspace:Raycast(root.Position, Vector3.new(0,-12,0))
                         if ray and ray.Material == Enum.Material.Water then
@@ -755,7 +328,6 @@ MoveTab:Toggle({
                             WaterPart.CanCollide = false
                         end
                     end
-
                     task.wait(0.03)
                 end
             end)
@@ -768,16 +340,12 @@ MoveTab:Toggle({
     end 
 })
 
--- =========================================
--- GHOST ENGINE (FIXED SPEED LOGIC)
--- =========================================
 RunService.Heartbeat:Connect(function()
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     local hum = char and char:FindFirstChild("Humanoid")
     if not hrp or not hum then return end
 
-    -- Noclip Logic
     if noclipBypassActive then
         for _, part in pairs(char:GetDescendants()) do
             if part:IsA("BasePart") then
@@ -786,29 +354,15 @@ RunService.Heartbeat:Connect(function()
         end
     end
 
-    -- Speed System Logic
-    if (speedBypassActive or cframeEnabled) then
+    if speedBypassActive then
         if hum.MoveDirection.Magnitude > 0 then
-            local targetSpeed = speedBypassActive and customWalkspeed or (16 + speed)
-
-            -- Metode Velocity & CFrame Lerp (Bypass)
-            local moveVel = hum.MoveDirection * targetSpeed
+            local moveVel = hum.MoveDirection * customWalkspeed
             hrp.Velocity = Vector3.new(moveVel.X, hrp.Velocity.Y, moveVel.Z)
-            hrp.CFrame = hrp.CFrame:Lerp(hrp.CFrame + (hum.MoveDirection * 0.1), 0.5)
-
-            -- Saat bypass aktif, kita kunci ke 16 agar tidak terpantau Anticheat
-            hum.WalkSpeed = 16
+            if hum.WalkSpeed ~= 16 then hum.WalkSpeed = 16 end
         end
-    else
-        -- PENTING: Jika Toggle OFF, jangan paksa WalkSpeed ke 16! 
-        -- Biarkan nilai aslinya tetap atau diatur oleh server/item game.
     end
 end)
 
-
--- =========================================
--- UI CONTROL
--- =========================================
 MoveTab:Input({ 
     Title = "Set WalkSpeed Value", 
     Callback = function(txt) 
@@ -817,17 +371,17 @@ MoveTab:Input({
     end 
 })
 
-MoveTab:Slider({ 
-    Title = "WalkSpeed Slider", 
-    Step = 1, 
-    Value = { Min = 16, Max = 150, Default = 16 }, 
-    Callback = function(v) customWalkspeed = v end 
-})
+MoveTab:Section({Title = "WalkSpeed", TextSize = 20, TextXAlignment = "Center"}) 
+MoveTab:Slider({IsTooltip = true, Step = 1, Value = {Min = 16, Max = 150, Default = 16}, Icons = {From = "lucide:zap"}, Callback = function(v) customWalkspeed = v end})
 
 MoveTab:Toggle({ 
     Title = "WalkSpeed Bypass", 
     Callback = function(state) 
         speedBypassActive = state
+        if not state then
+            local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then hrp.Velocity = Vector3.new(0, hrp.Velocity.Y, 0) end
+        end
     end 
 })
 
@@ -856,55 +410,634 @@ MoveTab:Toggle({
 UserInputService.JumpRequest:Connect(function()
     if infJumpEnabled then
         local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
-        if hum then
-            hum:ChangeState(Enum.HumanoidStateType.Jumping)
+        if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+    end
+end)
+
+
+-- == TELEPORT SYSTEM ==
+MoveTab:Section({Title = "Teleport System", TextSize = 20, TextXAlignment = "Center"})
+
+-- == VARIABLES ==
+local TP_SelectedPlayer = ""
+local TP_SavedLocations = {}
+local TP_SelectedLocation = ""
+local TP_LastInputName = ""
+
+local PlayerDropdown
+local LocDropdown
+
+-- == PLAYER LIST FUNCTION ==
+local function GetPlayerList()
+    local list = {}
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            table.insert(list, p.DisplayName .. " @" .. p.Name)
+        end
+    end
+    if #list == 0 then return {"No Players Found"} end
+    return list
+end
+
+-- == REFRESH PLAYER DROPDOWN ==
+local function RefreshPlayerDropdown()
+    local list = GetPlayerList()
+
+    pcall(function()
+        if PlayerDropdown then
+            PlayerDropdown:Destroy()
+        end
+    end)
+
+    PlayerDropdown = MoveTab:Dropdown({ 
+        Title = "Select Player", 
+        Values = list, 
+        Value = list[1], 
+        Callback = function(v) 
+            TP_SelectedPlayer = v 
+        end 
+    })
+end
+
+-- INIT PLAYER DROPDOWN
+RefreshPlayerDropdown()
+
+-- AUTO REFRESH PLAYER LIST
+Players.PlayerAdded:Connect(RefreshPlayerDropdown)
+Players.PlayerRemoving:Connect(RefreshPlayerDropdown)
+
+-- == TELEPORT TO PLAYER ==
+MoveTab:Button({ 
+    Title = "Teleport to Player", 
+    Callback = function() 
+        local username = string.match(TP_SelectedPlayer, "@(.+)")
+        if username then
+            local target = Players:FindFirstChild(username)
+            local myChar = LocalPlayer.Character
+
+            if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") and myChar then
+                myChar:PivotTo(target.Character.HumanoidRootPart.CFrame)
+
+                WindUI:Notify({ 
+                    Title = "Teleport", 
+                    Content = "Berhasil teleport ke " .. target.Name, 
+                    Duration = 3 
+                })
+            else
+                WindUI:Notify({ 
+                    Title = "Error", 
+                    Content = "Player tidak valid", 
+                    Duration = 3 
+                })
+            end
+        end
+    end 
+})
+
+-- == COORD DISPLAY ==
+local CoordsPara = MoveTab:Paragraph({ 
+    Title = "Current Position", 
+    Desc = "X: 0 | Y: 0 | Z: 0", 
+    Image = "solar:map-point-bold" 
+})
+
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        local char = LocalPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+        if hrp then
+            local pos = hrp.Position
+            CoordsPara:SetDesc(string.format(
+                "X: %.1f | Y: %.1f | Z: %.1f",
+                pos.X, pos.Y, pos.Z
+            ))
         end
     end
 end)
 
--- -- --- TAB: SETTINGS --- --
-local SettingTab = Window:Tab({ Title = "Settings", Icon = "solar:settings-bold" })
-
--- 2. Security Section
-SettingTab:Paragraph({ 
-    Title = "Security & Protection", 
-    Desc = "Fitur pelindung otomatis jika ada Admin atau Staff yang masuk ke server." 
+-- == INPUT NAMA LOKASI ==
+MoveTab:Input({ 
+    Title = "Location Name", 
+    Callback = function(txt) 
+        TP_LastInputName = txt 
+    end 
 })
 
--- -- --- */ SETTINGS: ANTI-STAFF PROTECTION (ULTRA ACTIVE) /* --- --
-local Players = game:GetService("Players")
-local localPlayer = Players.LocalPlayer
+-- == REFRESH COORD DROPDOWN ==
+local function RefreshCoordDropdown()
+    local newValues = {}
 
--- Daftar nama badge yang haram dilihat
-local targetBadges = {"HeadAdmin", "Sponsored", "Developer", "Admin"}
+    for k, _ in pairs(TP_SavedLocations) do
+        table.insert(newValues, k)
+    end
 
--- Fungsi Eksekusi Kick (Hanya untuk diri sendiri saat staff terdeteksi)
-local function safetyKick(staffName, badgeName)
-    localPlayer:Kick("\n[WzxX SECURITY]\nEmergency Exit: Staff Detected!\nName: " .. staffName .. "\nBadge: " .. badgeName)
+    if #newValues == 0 then
+        newValues = {"Empty"}
+    end
+
+    pcall(function()
+        if LocDropdown then
+            LocDropdown:Destroy()
+        end
+    end)
+
+    LocDropdown = MoveTab:Dropdown({ 
+        Title = "Saved Coordinates", 
+        Values = newValues, 
+        Value = newValues[1], 
+        Callback = function(v) 
+            TP_SelectedLocation = v 
+        end 
+    })
 end
 
--- --- LOGIC SCANNER UTAMA (REAL-TIME LOOP) ---
+-- INIT COORD DROPDOWN
+RefreshCoordDropdown()
+
+-- == SAVE LOCATION ==
+MoveTab:Button({ 
+    Title = "Save Current Location", 
+    Callback = function() 
+        local char = LocalPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+        if hrp and TP_LastInputName and TP_LastInputName:gsub("%s+", "") ~= "" then
+            local pos = hrp.Position
+
+            local key = string.format(
+                "%s (%.0f, %.0f, %.0f)", 
+                TP_LastInputName, pos.X, pos.Y, pos.Z
+            )
+
+            TP_SavedLocations[key] = pos
+
+            RefreshCoordDropdown()
+
+            WindUI:Notify({ 
+                Title = "Saved!", 
+                Content = "Lokasi disimpan: " .. key, 
+                Duration = 3 
+            })
+        else
+            WindUI:Notify({ 
+                Title = "Error", 
+                Content = "Masukkan nama lokasi dulu!", 
+                Duration = 3 
+            })
+        end
+    end 
+})
+
+-- == TELEPORT KE KOORDINAT ==
+MoveTab:Button({ 
+    Title = "Teleport to Coordinate", 
+    Callback = function() 
+        if TP_SelectedLocation ~= "" and TP_SelectedLocation ~= "Empty" then
+            local pos = TP_SavedLocations[TP_SelectedLocation]
+            local char = LocalPlayer.Character
+
+            if pos and char then
+                char:PivotTo(CFrame.new(pos))
+
+                WindUI:Notify({ 
+                    Title = "Teleport", 
+                    Content = "Teleport ke " .. TP_SelectedLocation, 
+                    Duration = 3 
+                })
+            else
+                WindUI:Notify({ 
+                    Title = "Error", 
+                    Content = "Koordinat tidak valid", 
+                    Duration = 3 
+                })
+            end
+        else
+            WindUI:Notify({ 
+                Title = "Error", 
+                Content = "Pilih lokasi dulu!", 
+                Duration = 3 
+            })
+        end
+    end 
+})
+
+
+-- ========================================================== --
+-- TAB 4: VISUAL (ESP)
+-- ========================================================== --
+local ESPTab = Window:Tab({ Title = "Visual", Icon = "solar:eye-bold" })
+
+local ESPEnabled = false
+local ESPBox = false
+local ESPTracer = false
+local ESPDistance = false
+local ESPSkeleton = false
+local ESPName = false
+local ESPHealthBar = false
+
+local MainSection = ESPTab:Section({ Title = "Main Settings", Side = "Left", TextSize = 20, TextXAlignment = "Center" })
+MainSection:Toggle({ Title = "Enable ESP", Value = false, Callback = function(s) ESPEnabled = s end })
+MainSection:Toggle({ Title = "Show Box", Value = false, Callback = function(s) ESPBox = s end })
+MainSection:Toggle({ Title = "Show Tracer (Locked Center)", Value = false, Callback = function(s) ESPTracer = s end })
+MainSection:Toggle({ Title = "Show Skeleton", Value = false, Callback = function(s) ESPSkeleton = s end })
+MainSection:Toggle({ Title = "Show Health Bar", Value = false, Callback = function(s) ESPHealthBar = s end })
+MainSection:Toggle({ Title = "Show Name", Value = false, Callback = function(s) ESPName = s end })
+MainSection:Toggle({ Title = "Show Distance (Fixed)", Value = false, Callback = function(s) ESPDistance = s end })
+
+local NameTagSection = ESPTab:Section({ Title = "NameTag Visual (Self)", Side = "Left", TextSize = 20, TextXAlignment = "Center" })
+
+-- == STATE BADGE ==
+local BadgeStates = {
+    Admin = false,
+    Vip = false,
+    Sponsored = false,
+    HeadAdmin = false,
+    Developer = false,
+    Verified = false
+}
+
+-- == FUNCTION APPLY BADGE ==
+local function ApplyBadges()
+    local char = game.Players.LocalPlayer.Character
+    if not char then return end
+
+    local head = char:FindFirstChild("Head")
+    if not head then return end
+
+    local nameTag = head:FindFirstChild("NameTag")
+    if not nameTag then return end
+
+    local badges = nameTag:FindFirstChild("Badges")
+    if not badges then return end
+
+    for badgeName, state in pairs(BadgeStates) do
+        local badge = badges:FindFirstChild(badgeName)
+        if badge then
+            badge.Visible = state
+        end
+    end
+end
+
+-- == SET BADGE ==
+local function SetMyBadge(badgeName, state)
+    BadgeStates[badgeName] = state
+    ApplyBadges()
+end
+
+-- == AUTO APPLY SAAT RESPAWN ==
+game.Players.LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(1) -- tunggu character load
+    ApplyBadges()
+end)
+
+-- == TOGGLES ==
+NameTagSection:Toggle({ 
+    Title = "Get Admin Badge", 
+    Value = false, 
+    Callback = function(s) SetMyBadge("Admin", s) end 
+})
+
+NameTagSection:Toggle({ 
+    Title = "Get Vip Badge", 
+    Value = false, 
+    Callback = function(s) SetMyBadge("Vip", s) end 
+})
+
+NameTagSection:Toggle({ 
+    Title = "Get Sponsored Badge", 
+    Value = false, 
+    Callback = function(s) SetMyBadge("Sponsored", s) end 
+})
+
+NameTagSection:Toggle({ 
+    Title = "Get HeadAdmin Badge", 
+    Value = false, 
+    Callback = function(s) SetMyBadge("HeadAdmin", s) end 
+})
+
+NameTagSection:Toggle({ 
+    Title = "Get Developer Badge", 
+    Value = false, 
+    Callback = function(s) SetMyBadge("Developer", s) end 
+})
+
+NameTagSection:Toggle({ 
+    Title = "Get Verified Badge", 
+    Value = false, 
+    Callback = function(s) SetMyBadge("Verified", s) end 
+})
+
+local Camera = workspace.CurrentCamera
+local ESP = {}
+ESP.__index = ESP
+
+function ESP.new()
+    local self = setmetatable({}, ESP)
+    self.espCache = {}
+    return self
+end
+
+function ESP:createDrawing(type, properties)
+    local drawing = Drawing.new(type)
+    for prop, val in pairs(properties) do drawing[prop] = val end
+    return drawing
+end
+
+function ESP:createComponents()
+    return {
+        Box = self:createDrawing("Square", {Thickness = 1, Transparency = 1, Color = Color3.fromRGB(255, 255, 255), Filled = false}),
+        Tracer = self:createDrawing("Line", {Thickness = 1, Transparency = 1, Color = Color3.fromRGB(255, 0, 0)}),
+        DistanceLabel = self:createDrawing("Text", {Size = 18, Center = true, Outline = true, Color = Color3.fromRGB(255, 255, 255), OutlineColor = Color3.fromRGB(0, 0, 0)}),
+        NameLabel = self:createDrawing("Text", {Size = 18, Center = true, Outline = true, Color = Color3.fromRGB(255, 255, 255), OutlineColor = Color3.fromRGB(0, 0, 0)}),
+        HealthBar = {
+            Outline = self:createDrawing("Square", {Thickness = 1, Transparency = 1, Color = Color3.fromRGB(0, 0, 0), Filled = false}),
+            Health = self:createDrawing("Square", {Thickness = 1, Transparency = 1, Color = Color3.fromRGB(0, 255, 0), Filled = true})
+        },
+        SkeletonLines = {}
+    }
+end
+
+local bodyConnections = {
+    R15 = {{"Head", "UpperTorso"}, {"UpperTorso", "LowerTorso"}, {"LowerTorso", "LeftUpperLeg"}, {"LowerTorso", "RightUpperLeg"}, {"LeftUpperLeg", "LeftLowerLeg"}, {"LeftLowerLeg", "LeftFoot"}, {"RightUpperLeg", "RightLowerLeg"}, {"RightLowerLeg", "RightFoot"}, {"UpperTorso", "LeftUpperArm"}, {"UpperTorso", "RightUpperArm"}, {"LeftUpperArm", "LeftLowerArm"}, {"LeftLowerArm", "LeftHand"}, {"RightUpperArm", "RightLowerArm"}, {"RightLowerArm", "RightHand"}},
+    R6 = {{"Head", "Torso"}, {"Torso", "Left Arm"}, {"Torso", "Right Arm"}, {"Torso", "Left Leg"}, {"Torso", "Right Leg"}}
+}
+
+function ESP:updateComponents(components, character, player)
+    if not ESPEnabled then self:hideComponents(components) return end
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    local humanoid = character:FindFirstChild("Humanoid")
+    local myChar = LocalPlayer.Character
+    local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
+
+    if hrp and humanoid and myHrp then
+        local hrpPosition, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+        local CenterPosition = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 4) 
+
+        if onScreen then
+            local screenWidth, screenHeight = Camera.ViewportSize.X, Camera.ViewportSize.Y
+            local factor = 1 / (hrpPosition.Z * math.tan(math.rad(Camera.FieldOfView * 0.5)) * 2) * 100
+            local width, height = math.floor(screenHeight / 25 * factor), math.floor(screenWidth / 27 * factor)
+            local distanceFromPlayer = math.floor((myHrp.Position - hrp.Position).magnitude)
+
+            if ESPBox then
+                components.Box.Size = Vector2.new(width, height)
+                components.Box.Position = Vector2.new(hrpPosition.X - width / 2, hrpPosition.Y - height / 2)
+                components.Box.Visible = true
+            else components.Box.Visible = false end
+
+            if ESPTracer then
+                components.Tracer.From = CenterPosition
+                components.Tracer.To = Vector2.new(hrpPosition.X, hrpPosition.Y + height / 2)
+                components.Tracer.Visible = true
+            else components.Tracer.Visible = false end
+
+            if ESPDistance then
+                components.DistanceLabel.Text = string.format("[%dM]", distanceFromPlayer)
+                components.DistanceLabel.Position = Vector2.new(hrpPosition.X, hrpPosition.Y + height / 2 + 15)
+                components.DistanceLabel.Visible = true
+            else components.DistanceLabel.Visible = false end
+
+            if ESPName then
+                components.NameLabel.Text = string.format("[%s]", player.Name)
+                components.NameLabel.Position = Vector2.new(hrpPosition.X, hrpPosition.Y - height / 2 - 15)
+                components.NameLabel.Visible = true
+            else components.NameLabel.Visible = false end
+
+            if ESPHealthBar then
+                local healthBarHeight = height
+                local healthBarWidth = 5
+                local healthFraction = humanoid.Health / humanoid.MaxHealth
+                components.HealthBar.Outline.Size = Vector2.new(healthBarWidth, healthBarHeight)
+                components.HealthBar.Outline.Position = Vector2.new(components.Box.Position.X - healthBarWidth - 2, components.Box.Position.Y)
+                components.HealthBar.Outline.Visible = true
+                components.HealthBar.Health.Size = Vector2.new(healthBarWidth - 2, healthBarHeight * healthFraction)
+                components.HealthBar.Health.Position = Vector2.new(components.HealthBar.Outline.Position.X + 1, components.HealthBar.Outline.Position.Y + healthBarHeight * (1 - healthFraction))
+                components.HealthBar.Health.Visible = true
+            else
+                components.HealthBar.Outline.Visible = false
+                components.HealthBar.Health.Visible = false
+            end
+
+            if ESPSkeleton then
+                local connections = bodyConnections[humanoid.RigType.Name] or {}
+                for _, connection in ipairs(connections) do
+                    local partA = character:FindFirstChild(connection[1])
+                    local partB = character:FindFirstChild(connection[2])
+                    if partA and partB then
+                        local lineKey = connection[1] .. "-" .. connection[2]
+                        local line = components.SkeletonLines[lineKey] or self:createDrawing("Line", {Thickness = 1, Color = Color3.fromRGB(255, 255, 255)})
+                        local posA, onScreenA = Camera:WorldToViewportPoint(partA.Position)
+                        local posB, onScreenB = Camera:WorldToViewportPoint(partB.Position)
+                        if onScreenA and onScreenB then
+                            line.From = Vector2.new(posA.X, posA.Y)
+                            line.To = Vector2.new(posB.X, posB.Y)
+                            line.Visible = true
+                            components.SkeletonLines[lineKey] = line
+                        else line.Visible = false end
+                    end
+                end
+            else
+                for _, line in pairs(components.SkeletonLines) do line.Visible = false end
+            end
+        else self:hideComponents(components) end
+    else self:hideComponents(components) end
+end
+
+function ESP:hideComponents(components)
+    components.Box.Visible = false
+    components.Tracer.Visible = false
+    components.DistanceLabel.Visible = false
+    components.NameLabel.Visible = false
+    components.HealthBar.Outline.Visible = false
+    components.HealthBar.Health.Visible = false
+    for _, line in pairs(components.SkeletonLines) do line.Visible = false end
+end
+
+function ESP:removeEsp(player)
+    local components = self.espCache[player]
+    if components then
+        components.Box:Remove()
+        components.Tracer:Remove()
+        components.DistanceLabel:Remove()
+        components.NameLabel:Remove()
+        components.HealthBar.Outline:Remove()
+        components.HealthBar.Health:Remove()
+        for _, line in pairs(components.SkeletonLines) do line:Remove() end
+        self.espCache[player] = nil
+    end
+end
+
+local espInstance = ESP.new()
+
+RunService.RenderStepped:Connect(function()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local character = player.Character
+            if character then
+                if not espInstance.espCache[player] then
+                    espInstance.espCache[player] = espInstance:createComponents()
+                end
+                espInstance:updateComponents(espInstance.espCache[player], character, player)
+            else
+                if espInstance.espCache[player] then
+                    espInstance:hideComponents(espInstance.espCache[player])
+                end
+            end
+        end
+    end
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    espInstance:removeEsp(player)
+end)
+
+
+-- ========================================================== --
+-- TAB 5: PROTECTION (Gabungan Anti-AFK + Staff Prot)
+-- ========================================================== --
+local ProtectionTab = Window:Tab({ Title = "Protection", Icon = "lucide:shield-check" })
+
+-- == ANTI AFK (PINDAHAN) ==
+ProtectionTab:Section({Title = "Anti-AFK System", TextSize = 20, TextXAlignment = "Center"})
+
+ProtectionTab:Paragraph({ 
+    Title = "Anti-AFK System", 
+    Desc = "Mencegah 'Disconnected' karena idle selama 20 menit." 
+})
+
+local AFKStatus = ProtectionTab:Paragraph({ 
+    Title = "AFK Status", 
+    Desc = "Status: Monitoring...", 
+    Image = "solar:clock-circle-bold" 
+})
+
+ProtectionTab:Toggle({ 
+    Title = "Enable Anti-AFK", 
+    Value = false, 
+    Callback = function(s) 
+        AntiAFKEnabled = s 
+        if s then
+            WindUI:Notify({ Title = "Anti-AFK Active", Content = "Karakter kamu sekarang aman dari kick idle.", Duration = 3 })
+            task.spawn(function()
+                local secondsIdle = 0
+                while AntiAFKEnabled do
+                    task.wait(1)
+                    local char = LocalPlayer.Character
+                    local hum = char and char:FindFirstChild("Humanoid")
+                    if hum and hum.MoveDirection.Magnitude > 0 then
+                        secondsIdle = 0
+                        AFKStatus:SetDesc("Status: Active (Moving...)")
+                    else
+                        secondsIdle = secondsIdle + 1
+                        local mins = math.floor(secondsIdle / 60)
+                        local secs = secondsIdle % 60
+                        AFKStatus:SetDesc(string.format("Status: Idle for %02d:%02d", mins, secs))
+                        if secondsIdle > 0 and secondsIdle % 60 == 0 then
+                            VirtualUser:CaptureController()
+                            VirtualUser:ClickButton2(Vector2.new())
+                        end
+                    end
+                end
+            end)
+        else
+            AFKStatus:SetDesc("Status: Anti-AFK Disabled")
+        end
+    end 
+})
+
+ProtectionTab:Section({Title = "Server Utility", TextSize = 20, TextXAlignment = "Center"})
+ProtectionTab:Paragraph({ Title = "Server Utility", Desc = "Fitur tambahan untuk kenyamanan farming." })
+ProtectionTab:Button({ Title = "Rejoin Server", Callback = function() game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer) end })
+ProtectionTab:Button({ Title = "Server Hop (Cari Server Baru)", Callback = function() 
+    local Http = game:GetService("HttpService")
+    local TPS = game:GetService("TeleportService")
+    local Api = "https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Desc&limit=100"
+    local _s = Http:JSONDecode(game:HttpGet(Api))
+    for _, v in pairs(_s.data) do
+        if v.playing < v.maxPlayers then TPS:TeleportToPlaceInstance(game.PlaceId, v.id) break end
+    end
+end })
+
+-- == STAFF PROTECTION ==
+ProtectionTab:Section({Title = "Anti-Bring & Detection", TextSize = 20, TextXAlignment = "Center" })
+
+ProtectionTab:Toggle({
+    Title = "Auto-Kick on Approach",
+    Desc = "Tips: Pastikan area sekelilingmu sepi sebelum aktif.",
+    Value = false,
+    Callback = function(s)
+        _G.AutoKickEnabled = s
+        if s then
+            task.spawn(function()
+                while _G.AutoKickEnabled do
+                    local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    if myRoot then
+                        for _, player in pairs(Players:GetPlayers()) do
+                            if player ~= LocalPlayer then
+                                local targetRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                                if targetRoot then
+                                    local distance = (myRoot.Position - targetRoot.Position).Magnitude
+                                    if distance <= 75 then
+                                        LocalPlayer:Kick("\n[SECURITY] Player Detected nearby!\nName: " .. player.Name)
+                                        _G.AutoKickEnabled = false
+                                        break
+                                    end
+                                end
+                            end
+                        end
+                    end
+                    task.wait(0.1)
+                end
+            end)
+        end
+    end
+})
+
+ProtectionTab:Section({Title = "Staff Protection", TextSize = 20, TextXAlignment = "Center"})
+
+-- Toggle Anti-Staff V1
+ProtectionTab:Toggle({
+    Title = "Anti-Staff V1 (Badges)",
+    Value = false,
+    Callback = function(s)
+        AntiAdminEnabled2 = s
+        if s then WindUI:Notify({ Title = "Security Active", Content = "Scanning server for staff badges...", Duration = 2 }) end
+    end
+})
+
+-- Toggle Anti-Staff V2
+ProtectionTab:Toggle({
+    Title = "Anti-Staff V2 (Username)",
+    Value = false,
+    Callback = function(s)
+        AntiAdminEnabled = s
+        if s then WindUI:Notify({ Title = "Security Active", Content = "Scanning server for staff usernames...", Duration = 2 }) end
+    end
+})
+
+local targetBadges = {"HeadAdmin", "Sponsored", "Developer", "Admin"}
+local function safetyKick(staffName, badgeName)
+    LocalPlayer:Kick("\n[WzxX SECURITY]\nEmergency Exit: Staff Detected!\nName: " .. staffName .. "\nBadge: " .. badgeName)
+end
+
 task.spawn(function()
-    while task.wait(0.5) do -- Scan setiap setengah detik biar gak kecolongan
+    while task.wait(0.5) do
         if AntiAdminEnabled2 then
             pcall(function()
                 for _, player in ipairs(Players:GetPlayers()) do
-                    -- 1. Jangan cek diri sendiri biar gak kena kick pas pamer badge visual
-                    if player ~= localPlayer and player.Name ~= localPlayer.Name then
-                        
+                    if player ~= LocalPlayer then
                         local char = player.Character
                         local head = char and char:FindFirstChild("Head")
                         local nameTag = head and head:FindFirstChild("NameTag")
                         local badges = nameTag and nameTag:FindFirstChild("Badges")
-                        
                         if badges then
                             for _, bName in ipairs(targetBadges) do
                                 local badge = badges:FindFirstChild(bName)
-                                
-                                -- 2. Cek apakah Badge-nya aktif/kelihatan
                                 if badge and badge.Visible == true then
                                     safetyKick(player.Name, bName)
-                                    return -- Berhenti loop karena udah ke kick
+                                    return
                                 end
                             end
                         end
@@ -915,64 +1048,11 @@ task.spawn(function()
     end
 end)
 
--- -- --- */ TOGGLE DI TAB SETTINGS /* --- --
-SettingTab:Toggle({ 
-    Title = "Anti-Staff V1(Badges)", 
-    Value = false, 
-    Callback = function(s) 
-        AntiAdminEnabled2 = s 
-        
-        if s then
-            WindUI:Notify({
-                Title = "Security Active", 
-                Content = "Scanning server for staff badges...", 
-                Duration = 2
-            })
-        end
-    end 
-})
 
--- -- --- */ TOGGLE DI TAB SETTINGS /* --- --
-SettingTab:Toggle({ 
-    Title = "Anti-Staff V2(Username)", 
-    Value = false, 
-    Callback = function(s) 
-        AntiAdminEnabled = s 
-        
-        if s then
-            WindUI:Notify({
-                Title = "Security Active", 
-                Content = "Scanning server for staff badges...", 
-                Duration = 2
-            })
-        end
-    end 
-})
+-- ========================================================== --
+-- LOGIC & BACKGROUND TASKS
+-- ========================================================== --
 
--- 3. Interface Section
-SettingTab:Paragraph({ 
-    Title = "Interface Customization", 
-    Desc = "Pilih warna tema yang kamu suka untuk tampilan menu WzxX." 
-})
-
-SettingTab:Dropdown({
-    Title = "Theme Color",
-    Values = { "Dark", "Light", "Crimson", "Midnight", "Rainbow" },
-    Value = "Crimson",
-    Callback = function(option) 
-        WindUI:SetTheme(tostring(option)) 
-    end
-})
-
--- 4. Information Section
-SettingTab:Paragraph({ 
-    Title = "Script Info", 
-    Desc = "Arsitek Utama: WzxX\nVersion: 1.2 Final State\nStatus: Secure" 
-})
-
-
-
--- */ 4. PERFORMANCE & INFO LOGS /* --
 local lastIteration, frameCount = tick(), 0
 RunService.Heartbeat:Connect(function()
     frameCount = frameCount + 1
@@ -983,12 +1063,9 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- */ UPDATE: ROD DETECTOR (Hanya deteksi Rod) /* --
 task.spawn(function()
     while task.wait(0.5) do
         local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildWhichIsA("Tool")
-        
-        -- Filter: Pastikan namanya ada kata "rod"
         if tool and string.find(string.lower(tool.Name), "rod") then
             RodParagraph:SetDesc("Detected: " .. tool.Name)
         else
@@ -1008,8 +1085,6 @@ task.spawn(function()
     end
 end)
 
-
--- */ 5. FIX ANTI-ADMIN (KICK + SHUTDOWN) & ANTI-AFK /* --
 task.spawn(function()
     while true do
         if AntiAdminEnabled then
@@ -1017,14 +1092,13 @@ task.spawn(function()
                 if player ~= LocalPlayer then
                     for _, adminName in pairs(Blacklist) do
                         if player.Name:lower() == adminName:lower() then
-                            -- Pesan Kick
                             LocalPlayer:Kick("\n[WzxX SECURITY]\nAdmin Terdeteksi: @" .. player.Name)
                         end
                     end
                 end
             end
         end
-        task.wait(0.1) -- Scan super cepat (0.1 detik)
+        task.wait(0.1)
     end
 end)
 
@@ -1035,16 +1109,10 @@ LocalPlayer.Idled:Connect(function()
     end
 end)
 
--- */ UPDATE: AUTO FISHING LOGIC (FIXED FOR RESPAWN/DEATH) /* --
-
 local function InstantThrow()
     if not AutoFishingEnabled then return end
-    
-    -- Selalu ambil Character yang paling baru (Fresh)
     local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
     local Rod = char:FindFirstChildWhichIsA("Tool")
-    
-    -- Filter: Cari kata "rod" (Case Insensitive)
     if Rod and string.find(string.lower(Rod.Name), "rod") then
         pcall(function()
             RodRemote:FireServer("Throw", Rod, workspace:WaitForChild("Terrain"))
@@ -1052,39 +1120,28 @@ local function InstantThrow()
     end
 end
 
--- Fungsi untuk menyambungkan deteksi ke karakter (ChildAdded)
 local function ConnectCharacter(char)
     char.ChildAdded:Connect(function(c)
         if AutoFishingEnabled and c:IsA("Tool") and string.find(string.lower(c.Name), "rod") then
-            task.wait(0.5) -- Jeda biar animasi mantap
+            task.wait(0.5)
             InstantThrow()
         end
     end)
 end
 
--- Jalankan koneksi untuk karakter saat ini
-if LocalPlayer.Character then
-    ConnectCharacter(LocalPlayer.Character)
-end
+if LocalPlayer.Character then ConnectCharacter(LocalPlayer.Character) end
 
--- JANTUNG PERBAIKAN: Deteksi kalau player mati dan spawn lagi
 LocalPlayer.CharacterAdded:Connect(function(newCharacter)
     ConnectCharacter(newCharacter)
-    
-    -- Jika Auto Fishing ON saat baru spawn, langsung cek tangan
     task.wait(1) 
-    if AutoFishingEnabled then
-        InstantThrow()
-    end
+    if AutoFishingEnabled then InstantThrow() end
 end)
 
--- Trigger pas mancing selesai (UI Reeling/WhiteBar hilang)
 PlayerGui.DescendantRemoving:Connect(function(d)
     if AutoFishingEnabled and (d.Name == "WhiteBar" or d.Name == "Reeling") then
         task.wait(1.2)
         InstantThrow()
     end
 end)
-
 
 Window:SelectTab(InfoTab)
