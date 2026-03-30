@@ -1,0 +1,865 @@
+local RunService = game:GetService("RunService")
+--[[
+
+    WindUI Example with Background Image
+    Full Version with Custom Background
+    
+]]
+
+local cloneref = (cloneref or clonereference or function(instance)
+    return instance
+end)
+local ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"))
+local HttpService = cloneref(game:GetService("HttpService"))
+
+local WindUI
+
+do
+    local ok, result = pcall(function()
+        return require("./src/Init")
+    end)
+
+    if ok then
+        WindUI = result
+    else
+        if cloneref(game:GetService("RunService")):IsStudio() then
+            WindUI = require(cloneref(ReplicatedStorage:WaitForChild("WindUI"):WaitForChild("Init")))
+        else
+            WindUI =
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
+        end
+    end
+end
+
+-- Variables
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local GuiService = game:GetService("GuiService")
+
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+local RootPart = Character:WaitForChild("HumanoidRootPart")
+
+-- State Variables
+local InfAmmoEnabled = false
+local AntiLagEnabled = false
+local InfJumpEnabled = false
+local NoclipEnabled = false
+local BypassWalkspeedEnabled = false
+local SpeedCframeEnabled = false
+local InstantInteractEnabled = false
+local WalkOnWaterEnabled = false
+local VehicleJumpEnabled = false
+local WalkspeedValue = 16
+local CframeSpeedValue = 1
+local NoclipConnection = nil
+local SpeedConnection = nil
+local JumpConnection = nil
+local WalkOnWaterConnection = nil
+local VehicleJumpKeybind = nil
+local WaterPart = nil
+local MobileJumpGUI = nil
+
+-- // MOBILE DETECTION // --
+local isMobile = UserInputService.TouchEnabled or GuiService:IsTenFootInterface()
+
+-- // VEHICLE JUMP FUNCTION // --
+local function DoVehicleJump()
+    if LocalPlayer.Character then
+        local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
+        local rootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        
+        if humanoid and rootPart then
+            rootPart.Velocity = Vector3.new(
+                rootPart.Velocity.X,
+                50,
+                rootPart.Velocity.Z
+            )
+        end
+    end
+end
+
+-- // CREATE JUMP GUI (PC & MOBILE) // --
+local function CreateJumpGUI()
+    if MobileJumpGUI then MobileJumpGUI:Destroy() end
+    
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "REU_VehicleJump"
+    screenGui.ResetOnSpawn = false
+    screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    
+    -- FRAME (DESAIN ASLI)
+    local mainButton = Instance.new("Frame")
+    mainButton.Size = UDim2.new(0, 130, 0, 55)
+    mainButton.Position = UDim2.new(0.8, -65, 0.6, 0)
+    mainButton.BackgroundColor3 = Color3.fromRGB(26,26,46)
+    mainButton.BorderSizePixel = 0
+    mainButton.Parent = screenGui
+    
+    Instance.new("UICorner", mainButton).CornerRadius = UDim.new(0, 12)
+    
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(48,255,106)
+    stroke.Thickness = 3
+    stroke.Parent = mainButton
+    
+    local gradient = Instance.new("UIGradient")
+    gradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(48,255,106)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(231,255,47))
+    })
+    gradient.Rotation = 45
+    gradient.Parent = mainButton
+    
+    -- TEXT (TERANG)
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.Text = "HOLD JUMP"
+    textLabel.TextColor3 = Color3.fromRGB(255,255,255)
+    textLabel.TextStrokeTransparency = 0
+    textLabel.TextStrokeColor3 = Color3.fromRGB(0,0,0)
+    textLabel.TextScaled = true
+    textLabel.Font = Enum.Font.GothamBold
+    textLabel.Parent = mainButton
+    
+    -- BUTTON (BUAT INPUT)
+    local clickButton = Instance.new("TextButton")
+    clickButton.Size = UDim2.new(1,0,1,0)
+    clickButton.BackgroundTransparency = 1
+    clickButton.Text = ""
+    clickButton.Parent = mainButton
+    
+    -- HOLD SYSTEM (INI YANG LU MAU)
+    local holding = false
+    
+    clickButton.MouseButton1Down:Connect(function()
+        holding = true
+        while holding do
+            DoVehicleJump()
+            task.wait(0.1)
+        end
+    end)
+    
+    clickButton.MouseButton1Up:Connect(function()
+        holding = false
+    end)
+    
+    MobileJumpGUI = screenGui
+end
+
+-- */  Window dengan Background Image  /* --
+local Window = WindUI:CreateWindow({
+    Title = ".ftgs hub  |  REU Terminal",
+    Author = "by .ftgs • REU Terminal",
+    Folder = "ftgshub",
+    Icon = "solar:folder-2-bold-duotone",
+    Theme = "Midnight",
+    NewElements = true,
+    HideSearchBar = false,
+    Size = UDim2.fromOffset(700, 400), 
+    
+    Background = "rbxassetid://111957618877731",
+    BackgroundImageTransparency = 0,
+    
+    OpenButton = {
+        Title = "Open .ftgs hub UI",
+        CornerRadius = UDim.new(0.2, 0),
+        StrokeThickness = 3,
+        Enabled = true,
+        Draggable = true,
+        OnlyMobile = false,
+        Scale = 1.0,
+        Color = ColorSequence.new(
+            Color3.fromHex("#30FF6A"),
+            Color3.fromHex("#e7ff2f")
+        ),
+    },
+    Topbar = {
+        Height = 44,
+        ButtonsType = "Mac",
+    },
+})
+
+-- */  Tags  /* --
+do
+    Window:Tag({
+        Title = "v1.0",
+        Icon = "github",
+        Color = Color3.fromHex("#1c1c1c"),
+        Border = true,
+    })
+end
+
+-- */  Colors  /* --
+local Purple = Color3.fromHex("#7775F2")
+local Yellow = Color3.fromHex("#ECA201")
+local Green = Color3.fromHex("#10C550")
+local Grey = Color3.fromHex("#83889E")
+local Blue = Color3.fromHex("#257AF7")
+local Red = Color3.fromHex("#EF4F1D")
+
+-- // CHARACTER REFRESH FUNCTION // --
+local function RefreshCharacter()
+    Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    Humanoid = Character:WaitForChild("Humanoid")
+    RootPart = Character:WaitForChild("HumanoidRootPart")
+end
+
+LocalPlayer.CharacterAdded:Connect(RefreshCharacter)
+
+-- */  Elements Section  /* --
+local ElementsSection = Window:Section({
+    Title = "Main Features",
+})
+
+-- */  TAB 1: FLINTLOCK MODS  /* --
+local FlintlockTab = ElementsSection:Tab({
+    Title = "Flintlock Mods",
+    Icon = "solar:gun-bold",
+    IconColor = Yellow,
+    IconShape = "Square",
+    Border = true,
+})
+
+FlintlockTab:Section({
+    Title = "Weapon Modifications",
+    TextSize = 18,
+})
+
+-- Toggle: Infinite Ammo (999/999)
+FlintlockTab:Toggle({
+    Title = "Infinite Ammo",
+    Desc = "999/999 ammunition - both sides maxed",
+    Callback = function(state)
+        InfAmmoEnabled = state
+        if state then
+            task.spawn(function()
+                while InfAmmoEnabled do
+                    local tool = nil
+                    if LocalPlayer.Character then
+                        for _, item in pairs(LocalPlayer.Character:GetChildren()) do
+                            if item:IsA("Tool") then
+                                tool = item
+                                break
+                            end
+                        end
+                    end
+                    if tool then
+                        local ammoType = tool:GetAttribute("AmmoType") or "Rifle"
+                        tool:SetAttribute("CurrentAmmo", 999)
+                        LocalPlayer:SetAttribute(ammoType .. "Ammo", 999)
+                    end
+                    task.wait(0.1)
+                end
+            end)
+            WindUI:Notify({
+                Title = "Infinite Ammo",
+                Content = "Enabled! 999/999 ammo active.",
+                Icon = "check",
+                Duration = 3,
+            })
+        else
+            WindUI:Notify({
+                Title = "Infinite Ammo",
+                Content = "Disabled.",
+                Icon = "close",
+                Duration = 2,
+            })
+        end
+    end,
+})
+
+FlintlockTab:Space()
+
+-- Toggle: Anti Lag
+FlintlockTab:Toggle({
+    Title = "Anti Lag",
+    Desc = "Optimize game performance & reduce lag",
+    Callback = function(state)
+        AntiLagEnabled = state
+        if state then
+            pcall(function()
+                settings().Rendering.QualityLevel = 1
+            end)
+            for _, v in pairs(workspace:GetDescendants()) do
+                if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") or v:IsA("Fire") or v:IsA("Sparkles") then
+                    v.Enabled = false
+                end
+            end
+            WindUI:Notify({
+                Title = "Anti Lag",
+                Content = "Performance optimized!",
+                Icon = "rocket",
+                Duration = 3,
+            })
+        else
+            pcall(function()
+                settings().Rendering.QualityLevel = 5
+            end)
+            WindUI:Notify({
+                Title = "Anti Lag",
+                Content = "Disabled. Quality restored.",
+                Icon = "close",
+                Duration = 2,
+            })
+        end
+    end,
+})
+
+FlintlockTab:Space()
+
+-- Toggle: Bypass Anti-Cheat
+FlintlockTab:Toggle({
+    Title = "Bypass Anti-Cheat",
+    Desc = "Bypass basic anti-cheat detection",
+    Callback = function(state)
+        if state then
+            if Humanoid then
+                Humanoid.WalkSpeed = 16
+            end
+            WindUI:Notify({
+                Title = "Bypass",
+                Content = "Anti-cheat bypass enabled!",
+                Icon = "shield",
+                Duration = 3,
+            })
+        else
+            WindUI:Notify({
+                Title = "Bypass",
+                Content = "Disabled.",
+                Icon = "close",
+                Duration = 2,
+            })
+        end
+    end,
+})
+
+-- */  TAB 2: LOCALSCRIPT MODS  /* --
+local LocalTab = ElementsSection:Tab({
+    Title = "LocalScript Mods",
+    Icon = "solar:code-bold",
+    IconColor = Purple,
+    IconShape = "Square",
+    Border = true,
+})
+
+LocalTab:Section({
+    Title = "Interaction Mods",
+    TextSize = 18,
+})
+
+-- Toggle: Instant Interact
+LocalTab:Toggle({
+    Title = "Instant Interact",
+    Desc = "No hold time - tap once to interact instantly",
+    Callback = function(state)
+        InstantInteractEnabled = state
+        if state then
+            for _, obj in pairs(workspace:GetDescendants()) do
+                if obj:IsA("ProximityPrompt") then
+                    obj.HoldDuration = 0
+                end
+            end
+            
+            workspace.DescendantAdded:Connect(function(desc)
+                if desc:IsA("ProximityPrompt") and InstantInteractEnabled then
+                    desc.HoldDuration = 0
+                end
+            end)
+            
+            WindUI:Notify({
+                Title = "Instant Interact",
+                Content = "Enabled! Tap once to interact - no hold needed.",
+                Icon = "hand-pointer",
+                Duration = 3,
+            })
+        else
+            WindUI:Notify({
+                Title = "Instant Interact",
+                Content = "Disabled.",
+                Icon = "close",
+                Duration = 2,
+            })
+        end
+    end,
+})
+
+LocalTab:Space()
+
+LocalTab:Section({
+    Title = "Movement Mods",
+    TextSize = 18,
+})
+
+-- Toggle: Infinite Jump
+LocalTab:Toggle({
+    Title = "Infinite Jump",
+    Desc = "Jump infinitely in the air",
+    Callback = function(state)
+        InfJumpEnabled = state
+        if state then
+            JumpConnection = UserInputService.JumpRequest:Connect(function()
+                if Humanoid then
+                    Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                end
+            end)
+            WindUI:Notify({
+                Title = "Infinite Jump",
+                Content = "Enabled! Jump unlimited times.",
+                Icon = "arrow-up",
+                Duration = 3,
+            })
+        else
+            if JumpConnection then
+                JumpConnection:Disconnect()
+                JumpConnection = nil
+            end
+            WindUI:Notify({
+                Title = "Infinite Jump",
+                Content = "Disabled.",
+                Icon = "close",
+                Duration = 2,
+            })
+        end
+    end,
+})
+
+LocalTab:Space()
+
+-- Toggle: Noclip
+LocalTab:Toggle({
+    Title = "Noclip",
+    Desc = "Walk through walls and objects",
+    Callback = function(state)
+        NoclipEnabled = state
+        if state then
+            NoclipConnection = RunService.Stepped:Connect(function()
+                if Character then
+                    for _, part in pairs(Character:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.CanCollide = false
+                        end
+                    end
+                end
+            end)
+            WindUI:Notify({
+                Title = "Noclip",
+                Content = "Enabled! Walk through walls.",
+                Icon = "ghost",
+                Duration = 3,
+            })
+        else
+            if NoclipConnection then
+                NoclipConnection:Disconnect()
+                NoclipConnection = nil
+            end
+            if Character then
+                for _, part in pairs(Character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = true
+                    end
+                end
+            end
+            WindUI:Notify({
+                Title = "Noclip",
+                Content = "Disabled.",
+                Icon = "close",
+                Duration = 2,
+            })
+        end
+    end,
+})
+
+LocalTab:Space()
+
+-- Toggle: Walk On Water
+LocalTab:Toggle({
+    Title = "Walk On Water",
+    Desc = "Walk on water - single platform follows you",
+    Callback = function(state)
+        WalkOnWaterEnabled = state
+        if state then
+            WaterPart = Instance.new("Part")
+            WaterPart.Name = "REU_WaterPlatform"
+            WaterPart.Size = Vector3.new(8, 1, 8)
+            WaterPart.Anchored = true
+            WaterPart.CanCollide = true
+            WaterPart.Transparency = 0.5
+            WaterPart.BrickColor = BrickColor.new("Baby blue")
+            WaterPart.Material = Enum.Material.Neon
+            WaterPart.Parent = workspace
+            
+            WalkOnWaterConnection = RunService.RenderStepped:Connect(function()
+                if LocalPlayer.Character and WaterPart then
+                    local humanoidRootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    if humanoidRootPart then
+                        local raycastParams = RaycastParams.new()
+                        raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+                        raycastParams.FilterDescendantsInstances = {LocalPlayer.Character, WaterPart}
+                        
+                        local hitPart = workspace:Raycast(
+                            humanoidRootPart.Position, 
+                            Vector3.new(0, -5, 0), 
+                            raycastParams
+                        )
+                        
+                        if hitPart and hitPart.Material == Enum.Material.Water then
+                            WaterPart.Position = hitPart.Position + Vector3.new(0, 0.5, 0)
+                            WaterPart.Transparency = 0.5
+                        else
+                            WaterPart.Position = Vector3.new(0, -1000, 0)
+                        end
+                    end
+                end
+            end)
+            
+            WindUI:Notify({
+                Title = "Walk On Water",
+                Content = "Enabled! Walk on water platform active.",
+                Icon = "waves",
+                Duration = 3,
+            })
+        else
+            if WalkOnWaterConnection then
+                WalkOnWaterConnection:Disconnect()
+                WalkOnWaterConnection = nil
+            end
+            if WaterPart then
+                WaterPart:Destroy()
+                WaterPart = nil
+            end
+            WindUI:Notify({
+                Title = "Walk On Water",
+                Content = "Disabled.",
+                Icon = "close",
+                Duration = 2,
+            })
+        end
+    end,
+})
+
+LocalTab:Space()
+
+-- Toggle: Vehicle Jump (PC & MOBILE - GUI + KEYBIND)
+LocalTab:Toggle({
+    Title = "Vehicle Jump [C + GUI]",
+    Desc = "Press C or tap JUMP V button - Draggable GUI",
+    Callback = function(state)
+        VehicleJumpEnabled = state
+        if state then
+            -- Create GUI for both PC and Mobile
+            CreateJumpGUI()
+            
+           local holdC = false
+
+UserInputService.InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.C then
+        holdC = true
+        while holdC do
+            DoVehicleJump()
+            task.wait(0.1)
+        end
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.C then
+        holdC = false
+    end
+end)
+            
+            
+        else
+            -- Remove keybind
+            if VehicleJumpKeybind then
+                VehicleJumpKeybind:Disconnect()
+                VehicleJumpKeybind = nil
+            end
+            
+            -- Remove GUI
+            if MobileJumpGUI then
+                MobileJumpGUI:Destroy()
+                MobileJumpGUI = nil
+            end
+            
+            WindUI:Notify({
+                Title = "Vehicle Jump",
+                Content = "Disabled.",
+                Icon = "close",
+                Duration = 2,
+            })
+        end
+    end,
+})
+
+LocalTab:Space()
+
+LocalTab:Section({
+    Title = "Speed Modifications",
+    TextSize = 18,
+})
+
+-- Toggle: Bypass Walkspeed
+LocalTab:Toggle({
+    Title = "Bypass Walkspeed",
+    Desc = "Enable custom walkspeed bypass",
+    Callback = function(state)
+        BypassWalkspeedEnabled = state
+        if state then
+            task.spawn(function()
+                while BypassWalkspeedEnabled do
+                    if Humanoid then
+                        Humanoid.WalkSpeed = WalkspeedValue
+                    end
+                    task.wait(0.1)
+                end
+            end)
+            WindUI:Notify({
+                Title = "Walkspeed Bypass",
+                Content = "Enabled! Speed: " .. WalkspeedValue,
+                Icon = "speedometer",
+                Duration = 3,
+            })
+        else
+            if Humanoid then
+                Humanoid.WalkSpeed = 16
+            end
+            WindUI:Notify({
+                Title = "Walkspeed Bypass",
+                Content = "Disabled. Speed reset to 16.",
+                Icon = "close",
+                Duration = 2,
+            })
+        end
+    end,
+})
+
+LocalTab:Space()
+
+-- Input: Walkspeed Value
+LocalTab:Input({
+    Title = "Set Walkspeed",
+    Desc = "Enter speed value (16 = normal)",
+    Icon = "solar:cursor-bold",
+    Callback = function(value)
+        local num = tonumber(value)
+        if num then
+            WalkspeedValue = num
+            if BypassWalkspeedEnabled and Humanoid then
+                Humanoid.WalkSpeed = num
+            end
+            WindUI:Notify({
+                Title = "Walkspeed Set",
+                Content = "Speed set to " .. num,
+                Icon = "check",
+                Duration = 2,
+            })
+        else
+            WindUI:Notify({
+                Title = "Error",
+                Content = "Please enter a valid number!",
+                Icon = "close",
+                Duration = 2,
+            })
+        end
+    end,
+})
+
+LocalTab:Space()
+
+-- Toggle: Speed CFrame
+LocalTab:Toggle({
+    Title = "Speed CFrame",
+    Desc = "Teleport-speed movement (very fast)",
+    Callback = function(state)
+        SpeedCframeEnabled = state
+        if state then
+            SpeedConnection = RunService.Heartbeat:Connect(function()
+                if Character and RootPart and Humanoid then
+                    local moveDir = Humanoid.MoveDirection
+                    if moveDir.Magnitude > 0 then
+                        RootPart.CFrame = RootPart.CFrame + (moveDir * CframeSpeedValue)
+                    end
+                end
+            end)
+            WindUI:Notify({
+                Title = "Speed CFrame",
+                Content = "Enabled! CFrame Speed: " .. CframeSpeedValue,
+                Icon = "zap",
+                Duration = 3,
+            })
+        else
+            if SpeedConnection then
+                SpeedConnection:Disconnect()
+                SpeedConnection = nil
+            end
+            WindUI:Notify({
+                Title = "Speed CFrame",
+                Content = "Disabled.",
+                Icon = "close",
+                Duration = 2,
+            })
+        end
+    end,
+})
+
+LocalTab:Space()
+
+-- Input: CFrame Speed Value
+LocalTab:Input({
+    Title = "Set CFrame Speed",
+    Desc = "Enter speed (1 = normal, 2 = fast, etc)",
+    Icon = "solar:cursor-bold",
+    Callback = function(value)
+        local num = tonumber(value)
+        if num then
+            CframeSpeedValue = num
+            WindUI:Notify({
+                Title = "CFrame Speed Set",
+                Content = "CFrame Speed set to " .. num,
+                Icon = "check",
+                Duration = 2,
+            })
+        else
+            WindUI:Notify({
+                Title = "Error",
+                Content = "Please enter a valid number!",
+                Icon = "close",
+                Duration = 2,
+            })
+        end
+    end,
+})
+
+LocalTab:Space()
+
+-- Slider untuk CFrame Speed
+LocalTab:Slider({
+    Title = "CFrame Speed Slider",
+    Desc = "Drag to adjust speed",
+    IsTooltip = true,
+    Step = 0.5,
+    Value = {
+        Min = 0.5,
+        Max = 10,
+        Default = 1,
+    },
+    Callback = function(value)
+        CframeSpeedValue = value
+    end,
+})
+
+-- */  TAB 3: INFO  /* --
+local InfoTab = ElementsSection:Tab({
+    Title = "Info",
+    Icon = "solar:info-circle-bold",
+    IconColor = Grey,
+    IconShape = "Square",
+    Border = true,
+})
+
+InfoTab:Section({
+    Title = "REU Hub - Flintlock Mod",
+    TextSize = 20,
+})
+
+InfoTab:Space()
+
+InfoTab:Section({
+    Title = "Platform: " .. (isMobile and "MOBILE" or "PC") .. " | GUI: Enabled",
+    TextSize = 16,
+    TextTransparency = 0.3,
+})
+
+InfoTab:Space()
+
+InfoTab:Section({
+    Title = "Created by: REU Terminal | WindUI by Footagesus",
+    TextSize = 16,
+    TextTransparency = 0.3,
+})
+
+InfoTab:Space()
+
+InfoTab:Button({
+    Title = "Refresh Character",
+    Color = Color3.fromHex("#305dff"),
+    Icon = "refresh-cw",
+    Callback = function()
+        RefreshCharacter()
+        WindUI:Notify({
+            Title = "Refreshed",
+            Content = "Character reference updated!",
+            Icon = "check",
+            Duration = 2,
+        })
+    end,
+})
+
+InfoTab:Space()
+
+InfoTab:Button({
+    Title = "Reset All Settings",
+    Color = Color3.fromHex("#ff4830"),
+    Icon = "trash",
+    Callback = function()
+        -- Reset all toggles
+        InfAmmoEnabled = false
+        AntiLagEnabled = false
+        InfJumpEnabled = false
+        NoclipEnabled = false
+        BypassWalkspeedEnabled = false
+        SpeedCframeEnabled = false
+        InstantInteractEnabled = false
+        WalkOnWaterEnabled = false
+        VehicleJumpEnabled = false
+        WalkspeedValue = 16
+        CframeSpeedValue = 1
+        
+        -- Disconnect all connections
+        if NoclipConnection then NoclipConnection:Disconnect() NoclipConnection = nil end
+        if SpeedConnection then SpeedConnection:Disconnect() SpeedConnection = nil end
+        if JumpConnection then JumpConnection:Disconnect() JumpConnection = nil end
+        if WalkOnWaterConnection then WalkOnWaterConnection:Disconnect() WalkOnWaterConnection = nil end
+        if VehicleJumpKeybind then VehicleJumpKeybind:Disconnect() VehicleJumpKeybind = nil end
+        
+        -- Hapus WaterPart
+        if WaterPart then
+            WaterPart:Destroy()
+            WaterPart = nil
+        end
+        
+        -- Hapus GUI
+        if MobileJumpGUI then
+            MobileJumpGUI:Destroy()
+            MobileJumpGUI = nil
+        end
+        
+        -- Reset humanoid
+        if Humanoid then
+            Humanoid.WalkSpeed = 16
+        end
+        
+        WindUI:Notify({
+            Title = "Reset",
+            Content = "All settings have been reset!",
+            Icon = "check",
+            Duration = 3,
+        })
+    end,
+})
+
+-- */  STARTUP NOTIFICATION  /* --
+task.wait(1)
+WindUI:Notify({
+    Title = "REU Hub Loaded",
+    Content = "Welcome Tuan! Press C or tap JUMP V button!",
+    Icon = "rocket",
+    Duration = 4,
+})
+
+print("✅ REU Hub - Flintlock Mod loaded successfully!")
+print("🎮 Vehicle Jump: Keybind C + GUI Button (Draggable)")
