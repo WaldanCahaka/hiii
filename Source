@@ -1772,70 +1772,68 @@ function Speed_Library:CreateWindow(Config)
     Transparency = 0.8,
   }, PreviewButton)
 
-  -- === Popup ===
+  -- === Popup (lebar 420, tinggi 310) ===
   local PickerGui = Custom:Create("Frame", {
     AnchorPoint = Vector2.new(0.5, 0.5),
-    BackgroundColor3 = Color3.fromRGB(18, 18, 18),
+    BackgroundColor3 = Color3.fromRGB(20, 20, 20),
     BorderSizePixel = 0,
     Position = UDim2.new(0.5, 0, 0.5, 0),
-    Size = UDim2.new(0, 260, 0, 215),
+    Size = UDim2.new(0, 420, 0, 310),
     Visible = false,
     ZIndex = 50,
     Name = "ColorPickerPopup",
   }, Main)
-  Custom:Create("UICorner", { CornerRadius = UDim.new(0, 8) }, PickerGui)
+  Custom:Create("UICorner", { CornerRadius = UDim.new(0, 10) }, PickerGui)
   Custom:Create("UIStroke", {
-    Color = Color3.fromRGB(60, 60, 60),
+    Color = Color3.fromRGB(55, 55, 55),
     Thickness = 1.5,
   }, PickerGui)
 
-  -- Shadow
   local PickShadow = Custom:Create("Frame", {
     AnchorPoint = Vector2.new(0.5, 0.5),
     BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-    BackgroundTransparency = 0.45,
+    BackgroundTransparency = 0.4,
     BorderSizePixel = 0,
-    Position = UDim2.new(0.5, 0, 0.5, 5),
-    Size = UDim2.new(0, 276, 0, 231),
+    Position = UDim2.new(0.5, 0, 0.5, 6),
+    Size = UDim2.new(0, 436, 0, 326),
     ZIndex = 49,
     Visible = false,
   }, Main)
-  Custom:Create("UICorner", { CornerRadius = UDim.new(0, 10) }, PickShadow)
+  Custom:Create("UICorner", { CornerRadius = UDim.new(0, 12) }, PickShadow)
 
   -- Top bar
   local PickerTopBar = Custom:Create("Frame", {
     BackgroundColor3 = Color3.fromRGB(28, 28, 28),
     BorderSizePixel = 0,
-    Size = UDim2.new(1, 0, 0, 30),
+    Size = UDim2.new(1, 0, 0, 34),
     ZIndex = 51,
   }, PickerGui)
-  Custom:Create("UICorner", { CornerRadius = UDim.new(0, 8) }, PickerTopBar)
+  Custom:Create("UICorner", { CornerRadius = UDim.new(0, 10) }, PickerTopBar)
   Custom:Create("TextLabel", {
     Font = Enum.Font.GothamBold,
-    Text = "🎨  Color Picker",
-    TextColor3 = Color3.fromRGB(210, 210, 210),
-    TextSize = 12,
+    Text = Title ~= "" and ("Color Picker  —  " .. Title) or "Color Picker",
+    TextColor3 = Color3.fromRGB(215, 215, 215),
+    TextSize = 13,
     BackgroundTransparency = 1,
     BorderSizePixel = 0,
-    Position = UDim2.new(0, 10, 0, 0),
-    Size = UDim2.new(1, -10, 1, 0),
+    Position = UDim2.new(0, 14, 0, 0),
+    Size = UDim2.new(1, -14, 1, 0),
     ZIndex = 52,
     TextXAlignment = Enum.TextXAlignment.Left,
   }, PickerTopBar)
 
-  -- === SV Box (double gradient) ===
+  -- === SV Box ===
   local SVBox = Custom:Create("Frame", {
     BackgroundColor3 = Color3.fromHSV(0, 1, 1),
     BorderSizePixel = 0,
-    Position = UDim2.new(0, 8, 0, 38),
-    Size = UDim2.new(0, 162, 0, 124),
+    Position = UDim2.new(0, 10, 0, 44),
+    Size = UDim2.new(0, 190, 0, 180),
     ZIndex = 51,
     ClipsDescendants = true,
     Name = "SVBox",
   }, PickerGui)
-  Custom:Create("UICorner", { CornerRadius = UDim.new(0, 5) }, SVBox)
+  Custom:Create("UICorner", { CornerRadius = UDim.new(0, 6) }, SVBox)
 
-  -- Saturation overlay: putih transparan kiri ke kanan
   local SatLayer = Custom:Create("Frame", {
     BackgroundTransparency = 1,
     BorderSizePixel = 0,
@@ -1844,8 +1842,8 @@ function Speed_Library:CreateWindow(Config)
   }, SVBox)
   Custom:Create("UIGradient", {
     Color = ColorSequence.new({
-      ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-      ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255)),
+      ColorSequenceKeypoint.new(0, Color3.fromRGB(255,255,255)),
+      ColorSequenceKeypoint.new(1, Color3.fromRGB(255,255,255)),
     }),
     Transparency = NumberSequence.new({
       NumberSequenceKeypoint.new(0, 0),
@@ -1854,7 +1852,6 @@ function Speed_Library:CreateWindow(Config)
     Rotation = 0,
   }, SatLayer)
 
-  -- Value overlay: hitam transparan atas ke bawah
   local ValLayer = Custom:Create("Frame", {
     BackgroundTransparency = 1,
     BorderSizePixel = 0,
@@ -1863,8 +1860,8 @@ function Speed_Library:CreateWindow(Config)
   }, SVBox)
   Custom:Create("UIGradient", {
     Color = ColorSequence.new({
-      ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)),
-      ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 0, 0)),
+      ColorSequenceKeypoint.new(0, Color3.fromRGB(0,0,0)),
+      ColorSequenceKeypoint.new(1, Color3.fromRGB(0,0,0)),
     }),
     Transparency = NumberSequence.new({
       NumberSequenceKeypoint.new(0, 1),
@@ -1873,22 +1870,20 @@ function Speed_Library:CreateWindow(Config)
     Rotation = 90,
   }, ValLayer)
 
-  -- Cursor SV
   local SVCursor = Custom:Create("Frame", {
     AnchorPoint = Vector2.new(0.5, 0.5),
     BackgroundColor3 = Color3.fromRGB(255, 255, 255),
     BorderSizePixel = 0,
     Position = UDim2.new(1, 0, 0, 0),
-    Size = UDim2.new(0, 11, 0, 11),
+    Size = UDim2.new(0, 13, 0, 13),
     ZIndex = 55,
   }, SVBox)
   Custom:Create("UICorner", { CornerRadius = UDim.new(0.5, 0) }, SVCursor)
   Custom:Create("UIStroke", {
     Color = Color3.fromRGB(0, 0, 0),
-    Thickness = 1.8,
+    Thickness = 2,
   }, SVCursor)
 
-  -- Input catcher SV (ZIndex tinggi biar bisa klik)
   local SVInput = Custom:Create("TextButton", {
     Text = "",
     BackgroundTransparency = 1,
@@ -1897,12 +1892,12 @@ function Speed_Library:CreateWindow(Config)
     ZIndex = 56,
   }, SVBox)
 
-  -- === Hue Slider ===
+  -- === Hue Slider (vertikal tipis) ===
   local HueSlider = Custom:Create("Frame", {
-    BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+    BackgroundColor3 = Color3.fromRGB(255,255,255),
     BorderSizePixel = 0,
-    Position = UDim2.new(0, 178, 0, 38),
-    Size = UDim2.new(0, 18, 0, 124),
+    Position = UDim2.new(0, 208, 0, 44),
+    Size = UDim2.new(0, 14, 0, 180),
     ZIndex = 51,
     ClipsDescendants = true,
     Name = "HueSlider",
@@ -1923,16 +1918,16 @@ function Speed_Library:CreateWindow(Config)
 
   local HueCursor = Custom:Create("Frame", {
     AnchorPoint = Vector2.new(0.5, 0.5),
-    BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+    BackgroundColor3 = Color3.fromRGB(255,255,255),
     BorderSizePixel = 0,
     Position = UDim2.new(0.5, 0, 0, 0),
-    Size = UDim2.new(1, 6, 0, 7),
+    Size = UDim2.new(1, 6, 0, 8),
     ZIndex = 55,
   }, HueSlider)
-  Custom:Create("UICorner", { CornerRadius = UDim.new(0, 2) }, HueCursor)
+  Custom:Create("UICorner", { CornerRadius = UDim.new(0, 3) }, HueCursor)
   Custom:Create("UIStroke", {
-    Color = Color3.fromRGB(0, 0, 0),
-    Thickness = 1.2,
+    Color = Color3.fromRGB(30, 30, 30),
+    Thickness = 1.5,
   }, HueCursor)
 
   local HueInput = Custom:Create("TextButton", {
@@ -1943,77 +1938,134 @@ function Speed_Library:CreateWindow(Config)
     ZIndex = 56,
   }, HueSlider)
 
-  -- === Right Panel: preview + hex + rgb ===
-  local ColorPreviewBig = Custom:Create("Frame", {
+  -- === Right Panel ===
+  -- Hex input
+  local function MakeRightInput(labelText, yPos)
+    local RowFrame = Custom:Create("Frame", {
+      BackgroundColor3 = Color3.fromRGB(32, 32, 32),
+      BorderSizePixel = 0,
+      Position = UDim2.new(0, 232, 0, yPos),
+      Size = UDim2.new(0, 178, 0, 32),
+      ZIndex = 51,
+    }, PickerGui)
+    Custom:Create("UICorner", { CornerRadius = UDim.new(0, 6) }, RowFrame)
+    Custom:Create("UIStroke", {
+      Color = Color3.fromRGB(55, 55, 55),
+      Thickness = 1,
+    }, RowFrame)
+
+    local TB = Custom:Create("TextBox", {
+      Font = Enum.Font.GothamBold,
+      Text = "",
+      PlaceholderText = "",
+      TextColor3 = Color3.fromRGB(220, 220, 220),
+      TextSize = 12,
+      BackgroundTransparency = 1,
+      BorderSizePixel = 0,
+      Position = UDim2.new(0, 10, 0, 0),
+      Size = UDim2.new(1, -60, 1, 0),
+      ZIndex = 52,
+      TextXAlignment = Enum.TextXAlignment.Left,
+      ClearTextOnFocus = false,
+    }, RowFrame)
+
+    local Lbl = Custom:Create("TextLabel", {
+      Font = Enum.Font.GothamBold,
+      Text = labelText,
+      TextColor3 = Color3.fromRGB(100, 100, 100),
+      TextSize = 11,
+      BackgroundTransparency = 1,
+      BorderSizePixel = 0,
+      AnchorPoint = Vector2.new(1, 0.5),
+      Position = UDim2.new(1, -10, 0.5, 0),
+      Size = UDim2.new(0, 40, 1, 0),
+      ZIndex = 52,
+      TextXAlignment = Enum.TextXAlignment.Right,
+    }, RowFrame)
+
+    return TB, Lbl
+  end
+
+  local HexInput,  _ = MakeRightInput("Hex",   44)
+  local RedInput,  _ = MakeRightInput("Red",   82)
+  local GreenInput,_ = MakeRightInput("Green", 118)
+  local BlueInput, _ = MakeRightInput("Blue",  154)
+
+  -- Preview before/after
+  local PreviewOld = Custom:Create("Frame", {
     BackgroundColor3 = Default,
     BorderSizePixel = 0,
-    Position = UDim2.new(0, 204, 0, 38),
-    Size = UDim2.new(0, 48, 0, 35),
+    Position = UDim2.new(0, 10, 0, 234),
+    Size = UDim2.new(0, 92, 0, 28),
     ZIndex = 51,
   }, PickerGui)
-  Custom:Create("UICorner", { CornerRadius = UDim.new(0, 5) }, ColorPreviewBig)
-  Custom:Create("UIStroke", {
-    Color = Color3.fromRGB(70, 70, 70),
-    Thickness = 1,
-  }, ColorPreviewBig)
+  Custom:Create("UICorner", { CornerRadius = UDim.new(0, 5) }, PreviewOld)
+  Custom:Create("UIStroke", { Color = Color3.fromRGB(55,55,55), Thickness = 1 }, PreviewOld)
 
-  local HexLabel = Custom:Create("TextLabel", {
-    Font = Enum.Font.GothamBold,
-    Text = "#FF0000",
-    TextColor3 = Color3.fromRGB(200, 200, 200),
-    TextSize = 10,
-    BackgroundTransparency = 1,
+  local PreviewNew = Custom:Create("Frame", {
+    BackgroundColor3 = Default,
     BorderSizePixel = 0,
-    Position = UDim2.new(0, 202, 0, 78),
-    Size = UDim2.new(0, 52, 0, 14),
+    Position = UDim2.new(0, 108, 0, 234),
+    Size = UDim2.new(0, 92, 0, 28),
     ZIndex = 51,
-    TextXAlignment = Enum.TextXAlignment.Center,
   }, PickerGui)
+  Custom:Create("UICorner", { CornerRadius = UDim.new(0, 5) }, PreviewNew)
+  Custom:Create("UIStroke", { Color = Color3.fromRGB(55,55,55), Thickness = 1 }, PreviewNew)
 
-  local RGBLabel = Custom:Create("TextLabel", {
+  -- Label kecil Old/New
+  Custom:Create("TextLabel", {
     Font = Enum.Font.Gotham,
-    Text = "255, 0, 0",
-    TextColor3 = Color3.fromRGB(130, 130, 130),
+    Text = "before",
+    TextColor3 = Color3.fromRGB(90,90,90),
     TextSize = 9,
     BackgroundTransparency = 1,
     BorderSizePixel = 0,
-    Position = UDim2.new(0, 202, 0, 93),
-    Size = UDim2.new(0, 52, 0, 24),
+    Position = UDim2.new(0, 10, 0, 262),
+    Size = UDim2.new(0, 92, 0, 10),
     ZIndex = 51,
     TextXAlignment = Enum.TextXAlignment.Center,
-    TextWrapped = true,
   }, PickerGui)
-
-  -- === Buttons ===
-  local ApplyBtn = Custom:Create("TextButton", {
-    Font = Enum.Font.GothamBold,
-    Text = "Apply",
-    TextColor3 = Color3.fromRGB(255, 255, 255),
-    TextSize = 13,
-    BackgroundColor3 = Custom.ColorRGB,
+  Custom:Create("TextLabel", {
+    Font = Enum.Font.Gotham,
+    Text = "after",
+    TextColor3 = Color3.fromRGB(90,90,90),
+    TextSize = 9,
+    BackgroundTransparency = 1,
     BorderSizePixel = 0,
-    Position = UDim2.new(0, 8, 1, -40),
-    Size = UDim2.new(0, 120, 0, 28),
+    Position = UDim2.new(0, 108, 0, 262),
+    Size = UDim2.new(0, 92, 0, 10),
     ZIndex = 51,
+    TextXAlignment = Enum.TextXAlignment.Center,
   }, PickerGui)
-  Custom:Create("UICorner", { CornerRadius = UDim.new(0, 5) }, ApplyBtn)
 
+  -- === Cancel & Apply ===
   local CancelBtn = Custom:Create("TextButton", {
     Font = Enum.Font.GothamBold,
     Text = "Cancel",
-    TextColor3 = Color3.fromRGB(190, 190, 190),
+    TextColor3 = Color3.fromRGB(180,180,180),
     TextSize = 13,
-    BackgroundColor3 = Color3.fromRGB(45, 45, 45),
+    BackgroundColor3 = Color3.fromRGB(38, 38, 38),
     BorderSizePixel = 0,
-    Position = UDim2.new(0, 136, 1, -40),
-    Size = UDim2.new(0, 116, 0, 28),
+    Position = UDim2.new(0, 232, 0, 234),
+    Size = UDim2.new(0, 85, 0, 38),
     ZIndex = 51,
   }, PickerGui)
-  Custom:Create("UICorner", { CornerRadius = UDim.new(0, 5) }, CancelBtn)
-  Custom:Create("UIStroke", {
-    Color = Color3.fromRGB(70, 70, 70),
-    Thickness = 1,
-  }, CancelBtn)
+  Custom:Create("UICorner", { CornerRadius = UDim.new(0, 6) }, CancelBtn)
+  Custom:Create("UIStroke", { Color = Color3.fromRGB(60,60,60), Thickness = 1 }, CancelBtn)
+
+  local ApplyBtn = Custom:Create("TextButton", {
+    Font = Enum.Font.GothamBold,
+    Text = "›  Apply",
+    TextColor3 = Color3.fromRGB(255,255,255),
+    TextSize = 13,
+    BackgroundColor3 = Color3.fromRGB(50, 50, 50),
+    BorderSizePixel = 0,
+    Position = UDim2.new(0, 325, 0, 234),
+    Size = UDim2.new(0, 85, 0, 38),
+    ZIndex = 51,
+  }, PickerGui)
+  Custom:Create("UICorner", { CornerRadius = UDim.new(0, 6) }, ApplyBtn)
+  Custom:Create("UIStroke", { Color = Color3.fromRGB(80,80,80), Thickness = 1 }, ApplyBtn)
 
   MakeDraggable(PickerTopBar, PickerGui)
 
@@ -2022,32 +2074,37 @@ function Speed_Library:CreateWindow(Config)
   local TempColor = Default
   local draggingSV = false
   local draggingHue = false
+  local updatingFromInput = false
 
   local function ColorToHex(c)
-    return string.format("#%02X%02X%02X",
-      math.floor(c.R * 255 + 0.5),
-      math.floor(c.G * 255 + 0.5),
-      math.floor(c.B * 255 + 0.5)
+    return string.format("#%02x%02x%02x",
+      math.floor(c.R*255+0.5),
+      math.floor(c.G*255+0.5),
+      math.floor(c.B*255+0.5)
     )
   end
 
   local function UpdateVisuals()
     SVBox.BackgroundColor3 = Color3.fromHSV(H, 1, 1)
     TempColor = Color3.fromHSV(H, S, V)
-
-    ColorPreviewBig.BackgroundColor3 = TempColor
-    HexLabel.Text = ColorToHex(TempColor)
-    RGBLabel.Text = string.format("%d, %d, %d",
-      math.floor(TempColor.R * 255 + 0.5),
-      math.floor(TempColor.G * 255 + 0.5),
-      math.floor(TempColor.B * 255 + 0.5)
-    )
-
+    PreviewNew.BackgroundColor3 = TempColor
     SVCursor.Position = UDim2.new(S, 0, 1 - V, 0)
     HueCursor.Position = UDim2.new(0.5, 0, H, 0)
+
+    -- Update Apply button color
+    ApplyBtn.BackgroundColor3 = TempColor
+
+    if not updatingFromInput then
+      updatingFromInput = true
+      HexInput.Text   = ColorToHex(TempColor)
+      RedInput.Text   = tostring(math.floor(TempColor.R*255+0.5))
+      GreenInput.Text = tostring(math.floor(TempColor.G*255+0.5))
+      BlueInput.Text  = tostring(math.floor(TempColor.B*255+0.5))
+      updatingFromInput = false
+    end
   end
 
-  -- === SV Input ===
+  -- === SV drag ===
   SVInput.InputBegan:Connect(function(inp)
     if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
       draggingSV = true
@@ -2062,7 +2119,7 @@ function Speed_Library:CreateWindow(Config)
     end
   end)
 
-  -- === Hue Input ===
+  -- === Hue drag ===
   HueInput.InputBegan:Connect(function(inp)
     if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
       draggingHue = true
@@ -2085,14 +2142,53 @@ function Speed_Library:CreateWindow(Config)
       V = 1 - math.clamp((inp.Position.Y - SVBox.AbsolutePosition.Y) / SVBox.AbsoluteSize.Y, 0, 1)
       UpdateVisuals()
     end
-
     if draggingHue then
       H = math.clamp((inp.Position.Y - HueSlider.AbsolutePosition.Y) / HueSlider.AbsoluteSize.Y, 0, 1)
       UpdateVisuals()
     end
   end)
 
-  -- === Open / Close ===
+  -- === Hex input handler ===
+  HexInput.FocusLost:Connect(function()
+    if updatingFromInput then return end
+    local txt = HexInput.Text:gsub("#",""):gsub("%s","")
+    if #txt == 6 then
+      local r = tonumber(txt:sub(1,2), 16)
+      local g = tonumber(txt:sub(3,4), 16)
+      local b = tonumber(txt:sub(5,6), 16)
+      if r and g and b then
+        local c = Color3.fromRGB(r, g, b)
+        H, S, V = Color3.toHSV(c)
+        UpdateVisuals()
+      end
+    end
+  end)
+
+  -- === RGB input handlers ===
+  local function MakeRGBHandler(tb, channel)
+    tb.FocusLost:Connect(function()
+      if updatingFromInput then return end
+      local n = tonumber(tb.Text)
+      if n then
+        n = math.clamp(math.floor(n), 0, 255)
+        local r = math.floor(TempColor.R*255+0.5)
+        local g = math.floor(TempColor.G*255+0.5)
+        local b = math.floor(TempColor.B*255+0.5)
+        if channel == "R" then r = n
+        elseif channel == "G" then g = n
+        elseif channel == "B" then b = n end
+        local c = Color3.fromRGB(r, g, b)
+        H, S, V = Color3.toHSV(c)
+        UpdateVisuals()
+      end
+    end)
+  end
+
+  MakeRGBHandler(RedInput,   "R")
+  MakeRGBHandler(GreenInput, "G")
+  MakeRGBHandler(BlueInput,  "B")
+
+  -- === Open/Close ===
   local function ClosePicker()
     PickerGui.Visible = false
     PickShadow.Visible = false
@@ -2101,10 +2197,8 @@ function Speed_Library:CreateWindow(Config)
   end
 
   PreviewButton.Activated:Connect(function()
-    if PickerGui.Visible then
-      ClosePicker()
-      return
-    end
+    if PickerGui.Visible then ClosePicker() return end
+    PreviewOld.BackgroundColor3 = Funcs_ColorPicker.Value
     H, S, V = Color3.toHSV(Funcs_ColorPicker.Value)
     UpdateVisuals()
     PickerGui.Visible = true
@@ -2136,7 +2230,7 @@ function Speed_Library:CreateWindow(Config)
   UpdateVisuals()
   ItemCount += 1
   return Funcs_ColorPicker
-end
+end 
 
       function Item:AddInput(Config)
         local Title = Config[1] or Config.Title or ""
