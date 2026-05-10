@@ -1218,11 +1218,10 @@ function Speed_Library:CreateWindow(Config)
       end
       
       function Item:AddColorpicker(Config)
-
-	local UIS = game:GetService("UserInputService")
+	local UserInputService = game:GetService("UserInputService")
 
 	local Title = Config.Title or "Colorpicker"
-	local Default = Config.Default or Color3.fromRGB(255,0,0)
+	local Default = Config.Default or Color3.fromRGB(255,0,100)
 	local Callback = Config.Callback or function() end
 
 	local Funcs = {
@@ -1231,17 +1230,15 @@ function Speed_Library:CreateWindow(Config)
 
 	local h,s,v = Color3.toHSV(Default)
 
-	--// ITEM
+	-- MAIN ITEM
 	local Holder = Instance.new("Frame")
 	Holder.Parent = SectionAdd
 	Holder.Size = UDim2.new(1,0,0,42)
-	Holder.BackgroundColor3 = Color3.fromRGB(30,30,30)
-	Holder.BackgroundTransparency = .15
+	Holder.BackgroundColor3 = Color3.fromRGB(25,25,25)
+	Holder.BackgroundTransparency = 0.15
 	Holder.BorderSizePixel = 0
 
-	local HoldCorner = Instance.new("UICorner")
-	HoldCorner.CornerRadius = UDim.new(0,8)
-	HoldCorner.Parent = Holder
+	Instance.new("UICorner", Holder).CornerRadius = UDim.new(0,8)
 
 	local TitleLabel = Instance.new("TextLabel")
 	TitleLabel.Parent = Holder
@@ -1257,283 +1254,275 @@ function Speed_Library:CreateWindow(Config)
 	local Preview = Instance.new("TextButton")
 	Preview.Parent = Holder
 	Preview.Size = UDim2.fromOffset(28,28)
-	Preview.Position = UDim2.new(1,-10,.5,0)
-	Preview.AnchorPoint = Vector2.new(1,.5)
+	Preview.Position = UDim2.new(1,-10,0.5,0)
+	Preview.AnchorPoint = Vector2.new(1,0.5)
 	Preview.BackgroundColor3 = Default
 	Preview.Text = ""
 	Preview.AutoButtonColor = false
 	Preview.BorderSizePixel = 0
 
-	local PrevCorner = Instance.new("UICorner")
-	PrevCorner.CornerRadius = UDim.new(0,8)
-	PrevCorner.Parent = Preview
+	Instance.new("UICorner", Preview).CornerRadius = UDim.new(0,8)
 
-	--// GUI
-	local ParentGui = gethui and gethui() or game.CoreGui
+	-- GUI
+	local GuiParent = gethui and gethui() or game.CoreGui
 
-	-- Hapus ScreenGui lama jika ada
-	local ExistingGui = ParentGui:FindFirstChild("ColorpickerUI")
-	if ExistingGui then ExistingGui:Destroy() end
+	-- Hapus yang lama biar ga numpuk
+	local oldScreen = GuiParent:FindFirstChild("ColorpickerScreen_" .. Title)
+	if oldScreen then oldScreen:Destroy() end
 
 	local Screen = Instance.new("ScreenGui")
-	Screen.Parent = ParentGui
+	Screen.Parent = GuiParent
 	Screen.ResetOnSpawn = false
-	Screen.Name = "ColorpickerUI"
+	Screen.Name = "ColorpickerScreen_" .. Title
+	Screen.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-	--// BACKGROUND (PERBAIKI POSISI)
-	local Back = Instance.new("Frame")
-	Back.Parent = Screen
-	Back.Size = UDim2.fromOffset(420,270)
-	Back.Position = UDim2.new(0.5, -210, 0.5, -135)  -- Perbaiki anchor point
-	Back.BackgroundColor3 = Color3.fromRGB(15,15,15)
-	Back.Visible = false
-	Back.BorderSizePixel = 0
+	-- DIALOG
+	local Dialog = Instance.new("Frame")
+	Dialog.Parent = Screen
+	Dialog.Visible = false
+	Dialog.Size = UDim2.fromOffset(440,300)
+	Dialog.Position = UDim2.new(0.5, -220, 0.5, -150)
+	Dialog.BackgroundColor3 = Color3.fromRGB(18,18,18)
+	Dialog.BorderSizePixel = 0
+	Dialog.Active = true
 
-	local BackCorner = Instance.new("UICorner")
-	BackCorner.CornerRadius = UDim.new(0,14)
-	BackCorner.Parent = Back
+	Instance.new("UICorner", Dialog).CornerRadius = UDim.new(0,16)
 
 	local Stroke = Instance.new("UIStroke")
-	Stroke.Parent = Back
+	Stroke.Parent = Dialog
 	Stroke.Color = Color3.fromRGB(45,45,45)
 
-	--// TITLE
-	local CPTitle = Instance.new("TextLabel")
-	CPTitle.Parent = Back
-	CPTitle.BackgroundTransparency = 1
-	CPTitle.Position = UDim2.fromOffset(18,12)
-	CPTitle.Size = UDim2.new(1,0,0,24)
-	CPTitle.Font = Enum.Font.GothamBold
-	CPTitle.Text = Title
-	CPTitle.TextColor3 = Color3.new(1,1,1)
-	CPTitle.TextSize = 17
-	CPTitle.TextXAlignment = Enum.TextXAlignment.Left
+	-- TITLE
+	local DialogTitle = Instance.new("TextLabel")
+	DialogTitle.Parent = Dialog
+	DialogTitle.BackgroundTransparency = 1
+	DialogTitle.Position = UDim2.fromOffset(18,14)
+	DialogTitle.Size = UDim2.new(1,0,0,24)
+	DialogTitle.Font = Enum.Font.GothamBold
+	DialogTitle.Text = Title
+	DialogTitle.TextColor3 = Color3.new(1,1,1)
+	DialogTitle.TextSize = 18
+	DialogTitle.TextXAlignment = Enum.TextXAlignment.Left
 
-	--// SAT MAP
+	-- SATURATION MAP
 	local SatMap = Instance.new("ImageLabel")
-	SatMap.Parent = Back
-	SatMap.Position = UDim2.fromOffset(18,48)
-	SatMap.Size = UDim2.fromOffset(180,180)
+	SatMap.Parent = Dialog
+	SatMap.Position = UDim2.fromOffset(18,50)
+	SatMap.Size = UDim2.fromOffset(170,170)
 	SatMap.Image = "rbxassetid://4155801252"
 	SatMap.BackgroundColor3 = Color3.fromHSV(h,1,1)
 	SatMap.BorderSizePixel = 0
+	SatMap.Active = true
 
-	local SatCorner = Instance.new("UICorner")
-	SatCorner.CornerRadius = UDim.new(0,10)
-	SatCorner.Parent = SatMap
+	Instance.new("UICorner", SatMap).CornerRadius = UDim.new(0,10)
 
-	--// CURSOR
 	local Cursor = Instance.new("Frame")
 	Cursor.Parent = SatMap
 	Cursor.Size = UDim2.fromOffset(14,14)
-	Cursor.AnchorPoint = Vector2.new(.5,.5)
+	Cursor.AnchorPoint = Vector2.new(0.5,0.5)
 	Cursor.BackgroundColor3 = Color3.new(1,1,1)
 	Cursor.BorderSizePixel = 0
 
-	local CursorCorner = Instance.new("UICorner")
-	CursorCorner.CornerRadius = UDim.new(1,0)
-	CursorCorner.Parent = Cursor
+	Instance.new("UICorner", Cursor).CornerRadius = UDim.new(1,0)
 
 	local CursorStroke = Instance.new("UIStroke")
 	CursorStroke.Parent = Cursor
 	CursorStroke.Thickness = 2
-	CursorStroke.Color = Color3.new(1,1,1)
+	CursorStroke.Color = Color3.new(0,0,0)
 
-	--// HUE
-	local Hue = Instance.new("ImageLabel")
-	Hue.Parent = Back
-	Hue.Position = UDim2.fromOffset(215,48)
-	Hue.Size = UDim2.fromOffset(14,180)
-	Hue.Image = "rbxassetid://3641079629"
-	Hue.BackgroundTransparency = 1
+	-- HUE SLIDER
+	local Hue = Instance.new("Frame")
+	Hue.Parent = Dialog
+	Hue.Position = UDim2.fromOffset(205,50)
+	Hue.Size = UDim2.fromOffset(10,170)
 	Hue.BorderSizePixel = 0
+	Hue.Active = true
 
-	local HueCorner = Instance.new("UICorner")
-	HueCorner.CornerRadius = UDim.new(1,0)
-	HueCorner.Parent = Hue
+	local HueGradient = Instance.new("UIGradient")
+	HueGradient.Parent = Hue
+	HueGradient.Rotation = 90
+	HueGradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(255,0,0)),
+		ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255,255,0)),
+		ColorSequenceKeypoint.new(0.33, Color3.fromRGB(0,255,0)),
+		ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0,255,255)),
+		ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0,0,255)),
+		ColorSequenceKeypoint.new(0.83, Color3.fromRGB(255,0,255)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(255,0,0))
+	})
 
-	--// HUE CURSOR
+	Instance.new("UICorner", Hue).CornerRadius = UDim.new(1,0)
+
 	local HueCursor = Instance.new("Frame")
 	HueCursor.Parent = Hue
 	HueCursor.Size = UDim2.new(1,0,0,6)
+	HueCursor.Position = UDim2.new(0,0,0,-3)
 	HueCursor.BackgroundColor3 = Color3.new(1,1,1)
 	HueCursor.BorderSizePixel = 0
 
-	local HueCursorCorner = Instance.new("UICorner")
-	HueCursorCorner.CornerRadius = UDim.new(1,0)
-	HueCursorCorner.Parent = HueCursor
+	Instance.new("UICorner", HueCursor).CornerRadius = UDim.new(1,0)
 
-	--// PREVIEW OLD
+	-- PREVIEW
 	local OldPreview = Instance.new("Frame")
-	OldPreview.Parent = Back
-	OldPreview.Position = UDim2.fromOffset(18,236)
-	OldPreview.Size = UDim2.fromOffset(80,20)
+	OldPreview.Parent = Dialog
+	OldPreview.Position = UDim2.fromOffset(18,232)
+	OldPreview.Size = UDim2.fromOffset(80,24)
 	OldPreview.BackgroundColor3 = Default
 	OldPreview.BorderSizePixel = 0
 
-	local OldCorner = Instance.new("UICorner")
-	OldCorner.CornerRadius = UDim.new(0,8)
-	OldCorner.Parent = OldPreview
+	Instance.new("UICorner", OldPreview).CornerRadius = UDim.new(0,8)
 
-	--// PREVIEW NEW
 	local NewPreview = Instance.new("Frame")
-	NewPreview.Parent = Back
-	NewPreview.Position = UDim2.fromOffset(108,236)
-	NewPreview.Size = UDim2.fromOffset(80,20)
+	NewPreview.Parent = Dialog
+	NewPreview.Position = UDim2.fromOffset(108,232)
+	NewPreview.Size = UDim2.fromOffset(80,24)
 	NewPreview.BackgroundColor3 = Default
 	NewPreview.BorderSizePixel = 0
 
-	local NewCorner = Instance.new("UICorner")
-	NewCorner.CornerRadius = UDim.new(0,8)
-	NewCorner.Parent = NewPreview
+	Instance.new("UICorner", NewPreview).CornerRadius = UDim.new(0,8)
 
-	--// APPLY
+	-- BUTTONS
 	local Apply = Instance.new("TextButton")
-	Apply.Parent = Back
-	Apply.Position = UDim2.new(1,-135,1,-45)
-	Apply.Size = UDim2.fromOffset(115,32)
-	Apply.BackgroundColor3 = Color3.fromRGB(70,70,80)
+	Apply.Parent = Dialog
+	Apply.Position = UDim2.new(1,-140,1,-52)
+	Apply.Size = UDim2.fromOffset(120,36)
+	Apply.BackgroundColor3 = Color3.fromRGB(80,80,90)
 	Apply.Text = "Apply"
-	Apply.TextColor3 = Color3.new(1,1,1)
 	Apply.Font = Enum.Font.GothamBold
 	Apply.TextSize = 14
+	Apply.TextColor3 = Color3.new(1,1,1)
+	Apply.AutoButtonColor = false
 	Apply.BorderSizePixel = 0
 
-	local ApplyCorner = Instance.new("UICorner")
-	ApplyCorner.CornerRadius = UDim.new(0,10)
-	ApplyCorner.Parent = Apply
+	Instance.new("UICorner", Apply).CornerRadius = UDim.new(0,10)
 
-	--// CANCEL
 	local Cancel = Instance.new("TextButton")
-	Cancel.Parent = Back
-	Cancel.Position = UDim2.new(1,-260,1,-45)
-	Cancel.Size = UDim2.fromOffset(115,32)
+	Cancel.Parent = Dialog
+	Cancel.Position = UDim2.new(1,-270,1,-52)
+	Cancel.Size = UDim2.fromOffset(120,36)
 	Cancel.BackgroundColor3 = Color3.fromRGB(35,35,35)
 	Cancel.Text = "Cancel"
-	Cancel.TextColor3 = Color3.new(1,1,1)
 	Cancel.Font = Enum.Font.GothamBold
 	Cancel.TextSize = 14
+	Cancel.TextColor3 = Color3.new(1,1,1)
+	Cancel.AutoButtonColor = false
 	Cancel.BorderSizePixel = 0
 
-	local CancelCorner = Instance.new("UICorner")
-	CancelCorner.CornerRadius = UDim.new(0,10)
-	CancelCorner.Parent = Cancel
+	Instance.new("UICorner", Cancel).CornerRadius = UDim.new(0,10)
 
-	--// UPDATE
+	-- UPDATE FUNCTION
 	local function UpdateVisual()
+		local clr = Color3.fromHSV(h, s, v)
 
-		local clr = Color3.fromHSV(h,s,v)
+		SatMap.BackgroundColor3 = Color3.fromHSV(h, 1, 1)
 
-		SatMap.BackgroundColor3 = Color3.fromHSV(h,1,1)
+		Cursor.Position = UDim2.new(s, 0, 1 - v, 0)
 
-		Cursor.Position = UDim2.new(
-			s,
-			0,
-			1-v,
-			0
-		)
-
-		HueCursor.Position = UDim2.new(
-			0,
-			0,
-			h,
-			-3
-		)
+		HueCursor.Position = UDim2.new(0, 0, h, -3)
 
 		NewPreview.BackgroundColor3 = clr
 	end
 
 	UpdateVisual()
 
-	--// DRAG
-	local DragSV = false
-	local DragHue = false
+	-- DRAG LOGIC
+	local dragSV = false
+	local dragHue = false
 
-	SatMap.InputBegan:Connect(function(i)
-		if i.UserInputType == Enum.UserInputType.MouseButton1
-		or i.UserInputType == Enum.UserInputType.Touch then
-			DragSV = true
-		end
-	end)
-
-	Hue.InputBegan:Connect(function(i)
-		if i.UserInputType == Enum.UserInputType.MouseButton1
-		or i.UserInputType == Enum.UserInputType.Touch then
-			DragHue = true
-		end
-	end)
-
-	UIS.InputChanged:Connect(function(i)
-		if DragSV then
-			local x = math.clamp(
-				(i.Position.X - SatMap.AbsolutePosition.X)
-				/ SatMap.AbsoluteSize.X,
-				0,
-				1
-			)
-			local y = math.clamp(
-				(i.Position.Y - SatMap.AbsolutePosition.Y)
-				/ SatMap.AbsoluteSize.Y,
-				0,
-				1
-			)
+	-- Mouse button down di SatMap
+	SatMap.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragSV = true
+			-- Update langsung saat klik pertama
+			local x = math.clamp((input.Position.X - SatMap.AbsolutePosition.X) / SatMap.AbsoluteSize.X, 0, 1)
+			local y = math.clamp((input.Position.Y - SatMap.AbsolutePosition.Y) / SatMap.AbsoluteSize.Y, 0, 1)
 			s = x
-			v = 1-y
+			v = 1 - y
 			UpdateVisual()
 		end
+	end)
 
-		if DragHue then
-			local y = math.clamp(
-				(i.Position.Y - Hue.AbsolutePosition.Y)
-				/ Hue.AbsoluteSize.Y,
-				0,
-				1
-			)
+	-- Mouse button down di Hue
+	Hue.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragHue = true
+			local y = math.clamp((input.Position.Y - Hue.AbsolutePosition.Y) / Hue.AbsoluteSize.Y, 0, 1)
 			h = y
 			UpdateVisual()
 		end
 	end)
 
-	UIS.InputEnded:Connect(function(i)
-		if i.UserInputType == Enum.UserInputType.MouseButton1
-		or i.UserInputType == Enum.UserInputType.Touch then
-			DragSV = false
-			DragHue = false
+	-- Drag tracking
+	UserInputService.InputChanged:Connect(function(input)
+		if dragSV and input.UserInputType == Enum.UserInputType.MouseButton1 then
+			local x = math.clamp((input.Position.X - SatMap.AbsolutePosition.X) / SatMap.AbsoluteSize.X, 0, 1)
+			local y = math.clamp((input.Position.Y - SatMap.AbsolutePosition.Y) / SatMap.AbsoluteSize.Y, 0, 1)
+			s = x
+			v = 1 - y
+			UpdateVisual()
+		end
+
+		if dragHue and input.UserInputType == Enum.UserInputType.MouseButton1 then
+			local y = math.clamp((input.Position.Y - Hue.AbsolutePosition.Y) / Hue.AbsoluteSize.Y, 0, 1)
+			h = y
+			UpdateVisual()
 		end
 	end)
 
-	--// OPEN
+	-- Stop drag
+	UserInputService.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragSV = false
+			dragHue = false
+		end
+	end)
+
+	-- OPEN
 	Preview.MouseButton1Click:Connect(function()
-		h,s,v = Color3.toHSV(Funcs.Value)
+		h, s, v = Color3.toHSV(Funcs.Value)
 		UpdateVisual()
-		Back.Visible = true
+		Dialog.Visible = true
 	end)
 
-	--// CLOSE
+	-- CLOSE
 	Cancel.MouseButton1Click:Connect(function()
-		Back.Visible = false
+		Dialog.Visible = false
 	end)
 
-	--// APPLY
+	-- APPLY
 	Apply.MouseButton1Click:Connect(function()
-		local clr = Color3.fromHSV(h,s,v)
+		local clr = Color3.fromHSV(h, s, v)
 		Funcs.Value = clr
 		Preview.BackgroundColor3 = clr
 		Callback(clr)
-		Back.Visible = false
+		Dialog.Visible = false
+	end)
+
+	-- CLICK OUTSIDE (opsional)
+	Dialog.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			local mousePos = input.Position
+			local dialogSize = Dialog.AbsoluteSize
+			local dialogPos = Dialog.AbsolutePosition
+			local isOutside = mousePos.X < dialogPos.X or mousePos.X > dialogPos.X + dialogSize.X
+				or mousePos.Y < dialogPos.Y or mousePos.Y > dialogPos.Y + dialogSize.Y
+			if isOutside then
+				Dialog.Visible = false
+			end
+		end
 	end)
 
 	function Funcs:Set(Color)
 		if Color then
 			Funcs.Value = Color
 			Preview.BackgroundColor3 = Color
-			h,s,v = Color3.toHSV(Color)
+			h, s, v = Color3.toHSV(Color)
 			UpdateVisual()
 		end
 	end
 
 	return Funcs
-end 
+end
 
       function Item:AddLine()
         local LineFuncs = {}
