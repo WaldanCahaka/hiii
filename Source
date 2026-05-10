@@ -1710,8 +1710,8 @@ function Speed_Library:CreateWindow(Config)
         ItemCount += 1
                 return Funcs_Slider
       end
-      
-      function Item:AddColorPicker(Config)
+     
+     function Item:AddColorPicker(Config)
   local Title = Config[1] or Config.Title or ""
   local Content = Config[2] or Config.Content or ""
   local Default = Config[3] or Config.Default or Color3.fromRGB(255, 0, 0)
