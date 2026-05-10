@@ -1223,63 +1223,44 @@ function Speed_Library:CreateWindow(Config)
     local Default = Config[3] or Config.Default or Color3.fromRGB(255, 255, 255)
     local Callback = Config[4] or Config.Callback or function() end
     
-    local Transparency = Config.Transparency or false
-    local DefaultTransparency = Config.DefaultTransparency or 0
+    local Funcs_Colorpicker = {Value = Default}
     
-    local Funcs_Colorpicker = {Value = Default, Transparency = DefaultTransparency}
-    
-    local Colorpicker = Custom:Create("Frame", {
+    local ColorpickerFrame = Custom:Create("Frame", {
         BackgroundColor3 = Color3.fromRGB(255, 255, 255),
         BackgroundTransparency = 0.935,
         BorderSizePixel = 0,
         LayoutOrder = ItemCount,
-        Size = UDim2.new(1, 0, 0, 35),
-        Name = "Colorpicker",
+        Size = UDim2.new(1, 0, 0, 40),
+        Name = "ColorpickerItem",
     }, SectionAdd)
     
-    Custom:Create("UICorner", {CornerRadius = UDim.new(0, 4)}, Colorpicker)
+    Custom:Create("UICorner", {CornerRadius = UDim.new(0, 4)}, ColorpickerFrame)
     
     -- Title
-    local ColorpickerTitle = Custom:Create("TextLabel", {
+    Custom:Create("TextLabel", {
         Font = Enum.Font.GothamBold,
         Text = Title,
         TextColor3 = Color3.fromRGB(231, 231, 231),
         TextSize = 13,
         TextXAlignment = Enum.TextXAlignment.Left,
-        TextYAlignment = Enum.TextYAlignment.Top,
         BackgroundTransparency = 0.999,
-        Position = UDim2.new(0, 10, 1, -23),
-        Size = UDim2.new(1, -100, 0, 13),
-        Name = "ColorpickerTitle",
-    }, Colorpicker)
+        Position = UDim2.new(0, 10, 0, 10),
+        Size = UDim2.new(1, -70, 0, 14),
+    }, ColorpickerFrame)
     
-    -- Content / Description
-    local ColorpickerContent = Custom:Create("TextLabel", {
-        Font = Enum.Font.GothamBold,
-        Text = Content,
-        TextColor3 = Color3.fromRGB(255, 255, 255),
-        TextSize = 12,
-        TextTransparency = 0.6,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        TextYAlignment = Enum.TextYAlignment.Bottom,
-        BackgroundTransparency = 0.999,
-        Position = UDim2.new(0, 10, 1, -11),
-        Size = UDim2.new(1, -100, 0, 12),
-        Name = "ColorpickerContent",
-    }, Colorpicker)
-    
-    -- Update size based on content
-    local function UpdateColorpickerSize()
-        ColorpickerContent.TextWrapped = false
-        local lineCount = math.ceil(ColorpickerContent.TextBounds.X / ColorpickerContent.AbsoluteSize.X)
-        ColorpickerContent.Size = UDim2.new(1, -100, 0, 12 + (12 * math.max(0, lineCount - 1)))
-        Colorpicker.Size = UDim2.new(1, 0, 0, ColorpickerContent.AbsoluteSize.Y + 33)
-        ColorpickerContent.TextWrapped = true
-        UpdateSizeSection()
+    -- Content
+    if Content and Content ~= "" then
+        Custom:Create("TextLabel", {
+            Font = Enum.Font.GothamBold,
+            Text = Content,
+            TextColor3 = Color3.fromRGB(150, 150, 150),
+            TextSize = 11,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            BackgroundTransparency = 0.999,
+            Position = UDim2.new(0, 10, 0, 26),
+            Size = UDim2.new(1, -70, 0, 12),
+        }, ColorpickerFrame)
     end
-    
-    ColorpickerContent:GetPropertyChangedSignal("AbsoluteSize"):Connect(UpdateColorpickerSize)
-    UpdateColorpickerSize()
     
     -- Color preview button
     local ColorButton = Custom:Create("ImageButton", {
@@ -1287,355 +1268,270 @@ function Speed_Library:CreateWindow(Config)
         BackgroundTransparency = 0,
         BorderSizePixel = 0,
         AnchorPoint = Vector2.new(1, 0.5),
-        Position = UDim2.new(1, -15, 0.5, 0),
-        Size = UDim2.new(0, 30, 0, 30),
-        Name = "ColorButton",
-    }, Colorpicker)
+        Position = UDim2.new(1, -10, 0.5, 0),
+        Size = UDim2.new(0, 35, 0, 35),
+    }, ColorpickerFrame)
     
     Custom:Create("UICorner", {CornerRadius = UDim.new(0, 6)}, ColorButton)
-    Custom:Create("UIStroke", {Color = Color3.fromRGB(255, 255, 255), Thickness = 1.5, Transparency = 0.5}, ColorButton)
+    Custom:Create("UIStroke", {Color = Color3.fromRGB(200, 200, 200), Thickness = 1.5, Transparency = 0.5}, ColorButton)
     
-    -- Popup dialog for color picking (akan muncul saat button diklik)
-    local DialogFrame = nil
-    local DialogMain = nil
-    local isDialogOpen = false
-    
-    local function CloseDialog()
-        if DialogFrame and isDialogOpen then
-            local tween = TweenService:Create(DialogFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {BackgroundTransparency = 1})
-            tween:Play()
-            task.wait(0.15)
-            DialogFrame.Visible = false
-            isDialogOpen = false
-        end
-    end
-    
-    local function OpenDialog()
-        if DialogFrame then DialogFrame:Destroy() end
-        isDialogOpen = true
-        
-        -- Dialog background
-        DialogFrame = Custom:Create("Frame", {
+    -- Popup sederhana untuk color picker
+    local function ShowColorPicker()
+        -- Background gelap
+        local Backdrop = Custom:Create("Frame", {
             BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-            BackgroundTransparency = 0.85,
+            BackgroundTransparency = 0.7,
             BorderSizePixel = 0,
             Position = UDim2.new(0, 0, 0, 0),
             Size = UDim2.new(1, 0, 1, 0),
             ZIndex = 999,
             Visible = true,
-        }, Colorpicker.Parent.Parent.Parent.Parent.Parent)
+        }, ColorpickerFrame.Parent.Parent.Parent.Parent.Parent)
         
-        -- Dialog content
-        DialogMain = Custom:Create("Frame", {
-            BackgroundColor3 = Color3.fromRGB(20, 20, 20),
+        -- Panel color picker
+        local PickerPanel = Custom:Create("Frame", {
+            BackgroundColor3 = Color3.fromRGB(25, 25, 25),
             BorderSizePixel = 0,
             AnchorPoint = Vector2.new(0.5, 0.5),
             Position = UDim2.new(0.5, 0, 0.5, 0),
-            Size = UDim2.new(0, 280, 0, Transparency and 380 or 340),
+            Size = UDim2.new(0, 260, 0, 300),
             ZIndex = 1000,
-        }, DialogFrame)
+        }, Backdrop)
         
-        Custom:Create("UICorner", {CornerRadius = UDim.new(0, 12)}, DialogMain)
-        Custom:Create("UIStroke", {Color = Color3.fromRGB(50, 50, 50), Thickness = 1.5}, DialogMain)
+        Custom:Create("UICorner", {CornerRadius = UDim.new(0, 12)}, PickerPanel)
+        Custom:Create("UIStroke", {Color = Color3.fromRGB(50, 50, 50), Thickness = 1.5}, PickerPanel)
         
         -- Title bar
-        local DialogTitle = Custom:Create("TextLabel", {
-            Font = Enum.Font.GothamBold,
-            Text = "Color Picker",
+        local TitleBar = Custom:Create("Frame", {
+            BackgroundColor3 = Color3.fromRGB(35, 35, 35),
+            Size = UDim2.new(1, 0, 0, 35),
+        }, PickerPanel)
+        Custom:Create("UICorner", {CornerRadius = UDim.new(0, 12)}, TitleBar)
+        
+        Custom:Create("TextLabel", {
+            Text = "Pilih Warna",
             TextColor3 = Color3.fromRGB(255, 255, 255),
-            TextSize = 16,
+            TextSize = 15,
+            Font = Enum.Font.GothamBold,
             BackgroundTransparency = 1,
-            Position = UDim2.new(0, 15, 0, 15),
-            Size = UDim2.new(1, -30, 0, 20),
-        }, DialogMain)
+            Position = UDim2.new(0, 12, 0, 8),
+            Size = UDim2.new(1, -50, 0, 20),
+        }, TitleBar)
         
         -- Close button
         local CloseBtn = Custom:Create("TextButton", {
-            Text = "✕",
+            Text = "X",
             TextColor3 = Color3.fromRGB(255, 255, 255),
-            TextSize = 18,
+            TextSize = 16,
             BackgroundTransparency = 1,
             AnchorPoint = Vector2.new(1, 0),
-            Position = UDim2.new(1, -15, 0, 15),
-            Size = UDim2.new(0, 25, 0, 25),
-        }, DialogMain)
+            Position = UDim2.new(1, -12, 0, 8),
+            Size = UDim2.new(0, 22, 0, 22),
+        }, TitleBar)
         
-        CloseBtn.Activated:Connect(CloseDialog)
-        
-        -- Saturation/Value map
-        local SatVibMap = Custom:Create("ImageLabel", {
-            Size = UDim2.new(0, 200, 0, 200),
-            Position = UDim2.new(0.5, -100, 0, 55),
+        -- Color wheel sederhana (gradient)
+        local ColorWheel = Custom:Create("ImageLabel", {
+            Size = UDim2.new(0, 180, 0, 180),
+            Position = UDim2.new(0.5, -90, 0, 55),
             Image = "rbxassetid://4155801252",
             BackgroundTransparency = 0,
             ZIndex = 1001,
-        }, DialogMain)
+        }, PickerPanel)
+        Custom:Create("UICorner", {CornerRadius = UDim.new(0, 100)}, ColorWheel)
         
-        Custom:Create("UICorner", {CornerRadius = UDim.new(0, 8)}, SatVibMap)
-        
-        -- Cursor for Sat/Vib
-        local SatCursor = Custom:Create("Frame", {
+        -- Cursor
+        local Cursor = Custom:Create("Frame", {
             Size = UDim2.new(0, 12, 0, 12),
             AnchorPoint = Vector2.new(0.5, 0.5),
+            Position = UDim2.new(0.5, 0, 0.5, 0),
             BackgroundColor3 = Default,
             BorderSizePixel = 0,
             ZIndex = 1002,
-        }, SatVibMap)
-        
-        Custom:Create("UICorner", {CornerRadius = UDim.new(1, 0)}, SatCursor)
-        Custom:Create("UIStroke", {Color = Color3.fromRGB(255, 255, 255), Thickness = 2}, SatCursor)
+        }, ColorWheel)
+        Custom:Create("UICorner", {CornerRadius = UDim.new(1, 0)}, Cursor)
+        Custom:Create("UIStroke", {Color = Color3.fromRGB(255, 255, 255), Thickness = 2}, Cursor)
         
         -- Hue slider
         local HueSlider = Custom:Create("Frame", {
-            Size = UDim2.new(0, 16, 0, 200),
-            Position = UDim2.new(0.5, 120, 0, 55),
+            Size = UDim2.new(0, 16, 0, 180),
+            Position = UDim2.new(0.5, 100, 0, 55),
             BackgroundTransparency = 1,
-            ZIndex = 1001,
-        }, DialogMain)
+        }, PickerPanel)
         
-        local HueGradient = Custom:Create("Frame", {
-            Size = UDim2.new(1, 0, 1, 0),
-            BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-        }, HueSlider)
+        local HueGrad = Custom:Create("Frame", {Size = UDim2.new(1, 0, 1, 0)}, HueSlider)
+        Custom:Create("UICorner", {CornerRadius = UDim.new(1, 0)}, HueGrad)
         
-        Custom:Create("UICorner", {CornerRadius = UDim.new(1, 0)}, HueGradient)
-        
-        -- Hue gradient color sequence
         local HueColors = {}
-        for i = 0, 1, 0.05 do
+        for i = 0, 1, 0.1 do
             table.insert(HueColors, ColorSequenceKeypoint.new(i, Color3.fromHSV(i, 1, 1)))
         end
-        Custom:Create("UIGradient", {Color = ColorSequence.new(HueColors), Rotation = 90}, HueGradient)
+        Custom:Create("UIGradient", {Color = ColorSequence.new(HueColors), Rotation = 90}, HueGrad)
         
         local HueCursor = Custom:Create("Frame", {
-            Size = UDim2.new(0, 20, 0, 6),
+            Size = UDim2.new(0, 22, 0, 4),
             AnchorPoint = Vector2.new(0.5, 0.5),
             BackgroundColor3 = Color3.fromRGB(255, 255, 255),
             Position = UDim2.new(0.5, 0, 0, 0),
         }, HueSlider)
-        
         Custom:Create("UICorner", {CornerRadius = UDim.new(1, 0)}, HueCursor)
-        Custom:Create("UIStroke", {Color = Color3.fromRGB(0, 0, 0), Thickness = 1.5}, HueCursor)
         
-        -- Transparency slider (if enabled)
-        local TransparencySlider = nil
-        local TransparencyCursor = nil
-        
-        if Transparency then
-            TransparencySlider = Custom:Create("Frame", {
-                Size = UDim2.new(0, 200, 0, 16),
-                Position = UDim2.new(0.5, -100, 0, 270),
-                BackgroundTransparency = 1,
-                ZIndex = 1001,
-            }, DialogMain)
-            
-            local TransBg = Custom:Create("Frame", {
-                Size = UDim2.new(1, 0, 1, 0),
-                BackgroundColor3 = Color3.fromRGB(40, 40, 40),
-            }, TransparencySlider)
-            Custom:Create("UICorner", {CornerRadius = UDim.new(1, 0)}, TransBg)
-            
-            local TransGradient = Custom:Create("Frame", {
-                Size = UDim2.new(1, 0, 1, 0),
-            }, TransBg)
-            Custom:Create("UIGradient", {
-                Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(1, 1)}),
-                Rotation = 0,
-            }, TransGradient)
-            
-            TransparencyCursor = Custom:Create("Frame", {
-                Size = UDim2.new(0, 8, 0, 20),
-                AnchorPoint = Vector2.new(0.5, 0.5),
-                BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-                Position = UDim2.new(DefaultTransparency, 0, 0.5, 0),
-            }, TransparencySlider)
-            Custom:Create("UICorner", {CornerRadius = UDim.new(1, 0)}, TransparencyCursor)
-            Custom:Create("UIStroke", {Color = Color3.fromRGB(0, 0, 0), Thickness = 1.5}, TransparencyCursor)
-        end
-        
-        -- Preview color
-        local PreviewColor = Custom:Create("Frame", {
-            Size = UDim2.new(0, 50, 0, 40),
-            Position = UDim2.new(0.5, -145, 0, Transparency and 300 or 280),
+        -- Preview
+        local Preview = Custom:Create("Frame", {
+            Size = UDim2.new(0, 50, 0, 35),
+            Position = UDim2.new(0.5, -125, 0, 248),
             BackgroundColor3 = Default,
-            BackgroundTransparency = DefaultTransparency,
-        }, DialogMain)
-        Custom:Create("UICorner", {CornerRadius = UDim.new(0, 6)}, PreviewColor)
-        Custom:Create("UIStroke", {Color = Color3.fromRGB(80, 80, 80), Thickness = 1}, PreviewColor)
+            ZIndex = 1001,
+        }, PickerPanel)
+        Custom:Create("UICorner", {CornerRadius = UDim.new(0, 6)}, Preview)
         
-        -- Hex / RGB display
-        local InfoFrame = Custom:Create("Frame", {
-            Size = UDim2.new(0, 160, 0, 40),
-            Position = UDim2.new(0.5, -10, 0, Transparency and 300 or 280),
-            BackgroundTransparency = 1,
-        }, DialogMain)
-        
-        local HexBox = Custom:Create("TextBox", {
-            Font = Enum.Font.GothamBold,
-            Text = "#" .. Default:ToHex(),
+        -- Hex input
+        local HexInput = Custom:Create("TextBox", {
+            Size = UDim2.new(0, 100, 0, 30),
+            Position = UDim2.new(0.5, -10, 0, 250),
+            BackgroundColor3 = Color3.fromRGB(40, 40, 40),
             TextColor3 = Color3.fromRGB(255, 255, 255),
-            TextSize = 12,
-            BackgroundColor3 = Color3.fromRGB(30, 30, 30),
-            Size = UDim2.new(1, 0, 0, 18),
-            Position = UDim2.new(0, 0, 0, 0),
-        }, InfoFrame)
-        Custom:Create("UICorner", {CornerRadius = UDim.new(0, 4)}, HexBox)
+            Text = "#" .. Default:ToHex(),
+            Font = Enum.Font.GothamBold,
+            TextSize = 13,
+        }, PickerPanel)
+        Custom:Create("UICorner", {CornerRadius = UDim.new(0, 6)}, HexInput)
         
         -- Buttons
-        local CancelBtn = Custom:Create("TextButton", {
-            Text = "Cancel",
+        local CancelButton = Custom:Create("TextButton", {
+            Text = "Batal",
+            Size = UDim2.new(0, 110, 0, 32),
+            Position = UDim2.new(0.5, -115, 0, 258),
+            BackgroundColor3 = Color3.fromRGB(45, 45, 45),
             TextColor3 = Color3.fromRGB(200, 200, 200),
             TextSize = 14,
-            BackgroundColor3 = Color3.fromRGB(35, 35, 35),
-            Size = UDim2.new(0, 110, 0, 32),
-            Position = UDim2.new(0.5, -115, 0, Transparency and 330 or 290),
-        }, DialogMain)
-        Custom:Create("UICorner", {CornerRadius = UDim.new(0, 6)}, CancelBtn)
+        }, PickerPanel)
+        Custom:Create("UICorner", {CornerRadius = UDim.new(0, 6)}, CancelButton)
         
-        local ApplyBtn = Custom:Create("TextButton", {
-            Text = "Apply",
+        local ApplyButton = Custom:Create("TextButton", {
+            Text = "Terapkan",
+            Size = UDim2.new(0, 110, 0, 32),
+            Position = UDim2.new(0.5, 5, 0, 258),
+            BackgroundColor3 = Custom.ColorRGB,
             TextColor3 = Color3.fromRGB(255, 255, 255),
             TextSize = 14,
-            BackgroundColor3 = Custom.ColorRGB,
-            Size = UDim2.new(0, 110, 0, 32),
-            Position = UDim2.new(0.5, 5, 0, Transparency and 330 or 290),
-        }, DialogMain)
-        Custom:Create("UICorner", {CornerRadius = UDim.new(0, 6)}, ApplyBtn)
+        }, PickerPanel)
+        Custom:Create("UICorner", {CornerRadius = UDim.new(0, 6)}, ApplyButton)
         
         -- Variables
-        local hue = Color3.toHSV(Default)
-        local sat = hue
-        local vib = hue
-        local currentTransparency = DefaultTransparency
+        local hueVal = 0.5
+        local satVal = 0.5
+        local vibVal = 0.5
         
         local function UpdateColor()
-            local newColor = Color3.fromHSV(hue, sat, vib)
-            SatVibMap.BackgroundColor3 = Color3.fromHSV(hue, 1, 1)
-            SatCursor.Position = UDim2.new(sat, 0, 1 - vib, 0)
-            SatCursor.BackgroundColor3 = newColor
-            PreviewColor.BackgroundColor3 = newColor
-            HexBox.Text = "#" .. newColor:ToHex()
-            Funcs_Colorpicker.Value = newColor
+            local newColor = Color3.fromHSV(hueVal, satVal, vibVal)
+            Preview.BackgroundColor3 = newColor
+            Cursor.BackgroundColor3 = newColor
+            HexInput.Text = "#" .. newColor:ToHex()
         end
         
-        local function UpdateTransparency()
-            PreviewColor.BackgroundTransparency = currentTransparency
-            if TransparencyCursor then
-                TransparencyCursor.Position = UDim2.new(currentTransparency, 0, 0.5, 0)
-            end
-            Funcs_Colorpicker.Transparency = currentTransparency
-        end
-        
-        -- Set initial values
-        local function SetColorFromHSV(h, s, v)
-            hue = h
-            sat = s
-            vib = v
+        -- Set color from RGB
+        local function SetFromColor(color)
+            hueVal, satVal, vibVal = Color3.toHSV(color)
+            Cursor.Position = UDim2.new(satVal, 0, 1 - vibVal, 0)
+            HueCursor.Position = UDim2.new(0.5, 0, hueVal, 0)
             UpdateColor()
         end
         
-        SetColorFromHSV(Color3.toHSV(Default))
-        UpdateTransparency()
+        SetFromColor(Default)
         
-        -- Sat/Vib dragging
-        local draggingSV = false
-        SatVibMap.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                draggingSV = true
+        -- Color wheel drag
+        local draggingWheel = false
+        ColorWheel.InputBegan:Connect(function(i)
+            if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+                draggingWheel = true
             end
         end)
+        ColorWheel.InputEnded:Connect(function() draggingWheel = false end)
         
-        SatVibMap.InputEnded:Connect(function()
-            draggingSV = false
-        end)
-        
-        UserInputService.InputChanged:Connect(function(input)
-            if draggingSV and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-                local posX = math.clamp(input.Position.X - SatVibMap.AbsolutePosition.X, 0, SatVibMap.AbsoluteSize.X)
-                local posY = math.clamp(input.Position.Y - SatVibMap.AbsolutePosition.Y, 0, SatVibMap.AbsoluteSize.Y)
-                sat = posX / SatVibMap.AbsoluteSize.X
-                vib = 1 - (posY / SatVibMap.AbsoluteSize.Y)
+        UserInputService.InputChanged:Connect(function(i)
+            if draggingWheel and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+                local x = math.clamp(i.Position.X - ColorWheel.AbsolutePosition.X, 0, ColorWheel.AbsoluteSize.X)
+                local y = math.clamp(i.Position.Y - ColorWheel.AbsolutePosition.Y, 0, ColorWheel.AbsoluteSize.Y)
+                satVal = x / ColorWheel.AbsoluteSize.X
+                vibVal = 1 - (y / ColorWheel.AbsoluteSize.Y)
+                Cursor.Position = UDim2.new(satVal, 0, 1 - vibVal, 0)
                 UpdateColor()
             end
         end)
         
-        -- Hue dragging
+        -- Hue drag
         local draggingHue = false
-        HueSlider.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        HueSlider.InputBegan:Connect(function(i)
+            if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
                 draggingHue = true
             end
         end)
+        HueSlider.InputEnded:Connect(function() draggingHue = false end)
         
-        HueSlider.InputEnded:Connect(function()
-            draggingHue = false
-        end)
-        
-        UserInputService.InputChanged:Connect(function(input)
-            if draggingHue and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-                local posY = math.clamp(input.Position.Y - HueSlider.AbsolutePosition.Y, 0, HueSlider.AbsoluteSize.Y)
-                hue = posY / HueSlider.AbsoluteSize.Y
-                HueCursor.Position = UDim2.new(0.5, 0, hue, 0)
+        UserInputService.InputChanged:Connect(function(i)
+            if draggingHue and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+                local y = math.clamp(i.Position.Y - HueSlider.AbsolutePosition.Y, 0, HueSlider.AbsoluteSize.Y)
+                hueVal = y / HueSlider.AbsoluteSize.Y
+                HueCursor.Position = UDim2.new(0.5, 0, hueVal, 0)
                 UpdateColor()
             end
         end)
         
-        -- Transparency dragging
-        if Transparency then
-            local draggingTrans = false
-            TransparencySlider.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                    draggingTrans = true
-                end
-            end)
-            
-            TransparencySlider.InputEnded:Connect(function()
-                draggingTrans = false
-            end)
-            
-            UserInputService.InputChanged:Connect(function(input)
-                if draggingTrans and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-                    local posX = math.clamp(input.Position.X - TransparencySlider.AbsolutePosition.X, 0, TransparencySlider.AbsoluteSize.X)
-                    currentTransparency = posX / TransparencySlider.AbsoluteSize.X
-                    UpdateTransparency()
-                end
-            end)
-        end
-        
         -- Hex input
-        HexBox.FocusLost:Connect(function(enterPressed)
-            if enterPressed then
-                local hex = HexBox.Text:gsub("#", "")
-                local success, result = pcall(Color3.fromHex, hex)
-                if success and typeof(result) == "Color3" then
-                    local h, s, v = Color3.toHSV(result)
-                    SetColorFromHSV(h, s, v)
+        HexInput.FocusLost:Connect(function(enter)
+            if enter then
+                local hex = HexInput.Text:gsub("#", "")
+                local success, color = pcall(Color3.fromHex, hex)
+                if success and typeof(color) == "Color3" then
+                    SetFromColor(color)
                 else
-                    HexBox.Text = "#" .. Funcs_Colorpicker.Value:ToHex()
+                    HexInput.Text = "#" .. Funcs_Colorpicker.Value:ToHex()
                 end
             end
         end)
         
-        -- Buttons
-        CancelBtn.Activated:Connect(CloseDialog)
+        -- Close handlers
+        local function CloseUI()
+            Backdrop:Destroy()
+        end
         
-        ApplyBtn.Activated:Connect(function()
-            ColorButton.BackgroundColor3 = Funcs_Colorpicker.Value
-            ColorButton.BackgroundTransparency = Transparency and Funcs_Colorpicker.Transparency or 0
-            Callback(Funcs_Colorpicker.Value, Funcs_Colorpicker.Transparency)
-            CloseDialog()
+        CloseBtn.Activated:Connect(CloseUI)
+        CancelButton.Activated:Connect(CloseUI)
+        
+        ApplyButton.Activated:Connect(function()
+            local newColor = Color3.fromHSV(hueVal, satVal, vibVal)
+            ColorButton.BackgroundColor3 = newColor
+            Funcs_Colorpicker.Value = newColor
+            Callback(newColor)
+            CloseUI()
         end)
         
-        -- Animate open
-        DialogFrame.BackgroundTransparency = 0.85
+        -- Close with touch outside
+        Backdrop.InputBegan:Connect(function(i)
+            if i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseButton1 then
+                if not PickerPanel.AbsolutePosition or 
+                   i.Position.X < PickerPanel.AbsolutePosition.X or 
+                   i.Position.X > PickerPanel.AbsolutePosition.X + PickerPanel.AbsoluteSize.X or
+                   i.Position.Y < PickerPanel.AbsolutePosition.Y or 
+                   i.Position.Y > PickerPanel.AbsolutePosition.Y + PickerPanel.AbsoluteSize.Y then
+                    CloseUI()
+                end
+            end
+        end)
     end
     
-    ColorButton.Activated:Connect(OpenDialog)
+    ColorButton.Activated:Connect(ShowColorPicker)
+    
+    function Funcs_Colorpicker:Set(color)
+        ColorButton.BackgroundColor3 = color
+        Funcs_Colorpicker.Value = color
+        Callback(color)
+    end
     
     ItemCount += 1
     return Funcs_Colorpicker
-end 
-
+end
+ 
       function Item:AddLine()
         local LineFuncs = {}
     
