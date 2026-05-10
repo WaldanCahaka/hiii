@@ -1971,7 +1971,7 @@ function Speed_Library:CreateWindow(Config)
   UpdateVisuals()
   ItemCount += 1
   return Funcs_ColorPicker
-end 
+end
 
       function Item:AddInput(Config)
         local Title = Config[1] or Config.Title or ""
