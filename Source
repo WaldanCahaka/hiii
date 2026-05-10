@@ -1723,12 +1723,20 @@ function Speed_Library:CreateWindow(Config)
           BackgroundTransparency = 0.935,
           BorderSizePixel = 0,
           LayoutOrder = ItemCount,
-          Size = UDim2.new(1, 0, 0, 35),
+          Size = UDim2.new(1, 0, 0, 45),  -- Diperbesar sedikit untuk mobile
           Name = "Colorpicker",
           ClipsDescendants = true
         }, SectionAdd)
 
-        Custom:Create("UICorner", {CornerRadius = UDim.new(0, 4)}, ColorpickerFrame)
+        Custom:Create("UICorner", {CornerRadius = UDim.new(0, 5)}, ColorpickerFrame)
+
+        -- Clickable Button (PENTING UNTUK MOBILE)
+        local ClickButton = Custom:Create("TextButton", {
+          Size = UDim2.new(1, 0, 1, 0),
+          BackgroundTransparency = 1,
+          Text = "",
+          ZIndex = 2
+        }, ColorpickerFrame)
 
         Custom:Create("TextLabel", {
           Font = Enum.Font.GothamBold,
@@ -1747,46 +1755,50 @@ function Speed_Library:CreateWindow(Config)
           BackgroundColor3 = Default,
           BorderSizePixel = 0,
           Position = UDim2.new(1, -15, 0.5, 0),
-          Size = UDim2.new(0, 65, 0, 22),
+          Size = UDim2.new(0, 70, 0, 26),   -- Diperbesar
           Name = "ColorDisplay"
         }, ColorpickerFrame)
 
-        Custom:Create("UICorner", {CornerRadius = UDim.new(0, 4)}, ColorDisplay)
-        Custom:Create("UIStroke", {Color = Color3.fromRGB(60, 60, 60), Thickness = 1.5, Transparency = 0.7}, ColorDisplay)
+        Custom:Create("UICorner", {CornerRadius = UDim.new(0, 5)}, ColorDisplay)
+        Custom:Create("UIStroke", {
+          Color = Color3.fromRGB(80, 80, 80),
+          Thickness = 1.8,
+          Transparency = 0.6
+        }, ColorDisplay)
 
         -- Picker Container
         local PickerContainer = Custom:Create("Frame", {
-          BackgroundColor3 = Color3.fromRGB(20, 20, 20),
+          BackgroundColor3 = Color3.fromRGB(25, 25, 25),
           BorderSizePixel = 0,
-          Position = UDim2.new(0, 0, 0, 40),
-          Size = UDim2.new(1, 0, 0, 160),
+          Position = UDim2.new(0, 0, 0, 50),
+          Size = UDim2.new(1, 0, 0, 170),
           Visible = false,
           Name = "PickerContainer"
         }, ColorpickerFrame)
 
-        Custom:Create("UICorner", {CornerRadius = UDim.new(0, 5)}, PickerContainer)
+        Custom:Create("UICorner", {CornerRadius = UDim.new(0, 6)}, PickerContainer)
 
         local ColorMain = Custom:Create("ImageLabel", {
-          Size = UDim2.new(1, -30, 1, -30),
-          Position = UDim2.new(0, 15, 0, 15),
+          Size = UDim2.new(1, -35, 1, -35),
+          Position = UDim2.new(0, 17, 0, 15),
           Image = "rbxassetid://4155801252",
           BackgroundTransparency = 1,
           Name = "ColorMain"
         }, PickerContainer)
 
-        Custom:Create("UICorner", {CornerRadius = UDim.new(0, 4)}, ColorMain)
+        Custom:Create("UICorner", {CornerRadius = UDim.new(0, 5)}, ColorMain)
 
         local ColorSelection = Custom:Create("ImageLabel", {
-          Size = UDim2.new(0, 18, 0, 18),
+          Size = UDim2.new(0, 20, 0, 20),
           AnchorPoint = Vector2.new(0.5, 0.5),
           BackgroundTransparency = 1,
           Image = "http://www.roblox.com/asset/?id=4805639000",
-          ZIndex = 2
+          ZIndex = 3
         }, ColorMain)
 
         local HueFrame = Custom:Create("Frame", {
-          Size = UDim2.new(0, 20, 1, -30),
-          Position = UDim2.new(1, -25, 0, 15),
+          Size = UDim2.new(0, 22, 1, -35),
+          Position = UDim2.new(1, -27, 0, 15),
           BackgroundTransparency = 1,
           Name = "HueFrame"
         }, PickerContainer)
@@ -1795,23 +1807,23 @@ function Speed_Library:CreateWindow(Config)
           Rotation = 270,
           Color = ColorSequence.new{
             ColorSequenceKeypoint.new(0, Color3.fromRGB(255,0,4)),
-            ColorSequenceKeypoint.new(0.2, Color3.fromRGB(234,255,0)),
-            ColorSequenceKeypoint.new(0.4, Color3.fromRGB(21,255,0)),
-            ColorSequenceKeypoint.new(0.6, Color3.fromRGB(0,255,255)),
-            ColorSequenceKeypoint.new(0.8, Color3.fromRGB(0,17,255)),
-            ColorSequenceKeypoint.new(0.9, Color3.fromRGB(255,0,251)),
+            ColorSequenceKeypoint.new(0.17, Color3.fromRGB(234,255,0)),
+            ColorSequenceKeypoint.new(0.34, Color3.fromRGB(21,255,0)),
+            ColorSequenceKeypoint.new(0.51, Color3.fromRGB(0,255,255)),
+            ColorSequenceKeypoint.new(0.68, Color3.fromRGB(0,17,255)),
+            ColorSequenceKeypoint.new(0.85, Color3.fromRGB(255,0,251)),
             ColorSequenceKeypoint.new(1, Color3.fromRGB(255,0,4))
           }
         }, HueFrame)
 
-        Custom:Create("UICorner", {CornerRadius = UDim.new(0, 4)}, HueFrame)
+        Custom:Create("UICorner", {CornerRadius = UDim.new(0, 5)}, HueFrame)
 
         local HueSelection = Custom:Create("ImageLabel", {
-          Size = UDim2.new(0, 18, 0, 18),
+          Size = UDim2.new(0, 20, 0, 20),
           AnchorPoint = Vector2.new(0.5, 0.5),
           BackgroundTransparency = 1,
           Image = "http://www.roblox.com/asset/?id=4805639000",
-          ZIndex = 2
+          ZIndex = 3
         }, HueFrame)
 
         local ColorH, ColorS, ColorV = Color3.toHSV(Default)
@@ -1827,36 +1839,26 @@ function Speed_Library:CreateWindow(Config)
           Callback(Colorpicker.Value)
         end
 
-        -- Toggle Picker (Support Mobile)
-        local function TogglePicker()
+        -- Toggle Picker
+        ClickButton.Activated:Connect(function()
           PickerContainer.Visible = not PickerContainer.Visible
-          ColorpickerFrame.Size = PickerContainer.Visible and UDim2.new(1, 0, 0, 205) or UDim2.new(1, 0, 0, 35)
+          ColorpickerFrame.Size = PickerContainer.Visible and UDim2.new(1, 0, 0, 225) or UDim2.new(1, 0, 0, 45)
           UpdateSizeSection()
-        end
-
-        ColorpickerFrame.InputBegan:Connect(function(input)
-          if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            TogglePicker()
-          end
         end)
 
-        -- Dragging System (PC + Mobile)
-        local draggingColor, draggingHue = false, false
-
-        local function StartDrag(frame, isHue)
-          draggingColor = not isHue
-          draggingHue = isHue
-        end
+        -- Dragging (Mobile + PC)
+        local draggingColor = false
+        local draggingHue = false
 
         ColorMain.InputBegan:Connect(function(input)
           if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            StartDrag(ColorMain, false)
+            draggingColor = true
           end
         end)
 
         HueFrame.InputBegan:Connect(function(input)
           if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            StartDrag(HueFrame, true)
+            draggingHue = true
           end
         end)
 
@@ -1873,7 +1875,7 @@ function Speed_Library:CreateWindow(Config)
           if draggingColor then
             local relX = math.clamp((mousePos.X - ColorMain.AbsolutePosition.X) / ColorMain.AbsoluteSize.X, 0, 1)
             local relY = math.clamp((mousePos.Y - ColorMain.AbsolutePosition.Y) / ColorMain.AbsoluteSize.Y, 0, 1)
-
+            
             ColorSelection.Position = UDim2.new(relX, 0, relY, 0)
             ColorS = relX
             ColorV = 1 - relY
@@ -1882,14 +1884,14 @@ function Speed_Library:CreateWindow(Config)
 
           if draggingHue then
             local relY = math.clamp((mousePos.Y - HueFrame.AbsolutePosition.Y) / HueFrame.AbsoluteSize.Y, 0, 1)
-
+            
             HueSelection.Position = UDim2.new(0.5, 0, relY, 0)
             ColorH = 1 - relY
             UpdateColor()
           end
         end)
 
-        -- Initial Position
+        -- Initial Setup
         ColorSelection.Position = UDim2.new(ColorS, 0, 1 - ColorV, 0)
         HueSelection.Position = UDim2.new(0.5, 0, 1 - ColorH, 0)
         UpdateVisuals()
@@ -1905,7 +1907,7 @@ function Speed_Library:CreateWindow(Config)
 
         ItemCount += 1
         return Colorpicker
-      end
+      end 
 
       function Item:AddInput(Config)
         local Title = Config[1] or Config.Title or ""
