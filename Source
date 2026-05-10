@@ -1724,12 +1724,12 @@ function Speed_Library:CreateWindow(Config)
           BorderSizePixel = 0,
           LayoutOrder = ItemCount,
           Size = UDim2.new(1, 0, 0, 35),
-          Name = "Colorpicker"
+          Name = "Colorpicker",
+          ClipsDescendants = true
         }, SectionAdd)
 
         Custom:Create("UICorner", {CornerRadius = UDim.new(0, 4)}, ColorpickerFrame)
 
-        -- Title & Content
         Custom:Create("TextLabel", {
           Font = Enum.Font.GothamBold,
           Text = Title,
@@ -1740,7 +1740,6 @@ function Speed_Library:CreateWindow(Config)
           BackgroundTransparency = 1,
           Position = UDim2.new(0, 10, 0, 10),
           Size = UDim2.new(1, -120, 0, 13),
-          Name = "Title"
         }, ColorpickerFrame)
 
         local ColorDisplay = Custom:Create("Frame", {
@@ -1753,12 +1752,7 @@ function Speed_Library:CreateWindow(Config)
         }, ColorpickerFrame)
 
         Custom:Create("UICorner", {CornerRadius = UDim.new(0, 4)}, ColorDisplay)
-
-        local Stroke = Custom:Create("UIStroke", {
-          Color = Color3.fromRGB(60, 60, 60),
-          Thickness = 1.5,
-          Transparency = 0.7
-        }, ColorDisplay)
+        Custom:Create("UIStroke", {Color = Color3.fromRGB(60, 60, 60), Thickness = 1.5, Transparency = 0.7}, ColorDisplay)
 
         -- Picker Container
         local PickerContainer = Custom:Create("Frame", {
@@ -1767,7 +1761,6 @@ function Speed_Library:CreateWindow(Config)
           Position = UDim2.new(0, 0, 0, 40),
           Size = UDim2.new(1, 0, 0, 160),
           Visible = false,
-          ClipsDescendants = true,
           Name = "PickerContainer"
         }, ColorpickerFrame)
 
@@ -1798,16 +1791,16 @@ function Speed_Library:CreateWindow(Config)
           Name = "HueFrame"
         }, PickerContainer)
 
-        local HueGradient = Custom:Create("UIGradient", {
+        Custom:Create("UIGradient", {
           Rotation = 270,
           Color = ColorSequence.new{
-            ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 4)),
-            ColorSequenceKeypoint.new(0.2, Color3.fromRGB(234, 255, 0)),
-            ColorSequenceKeypoint.new(0.4, Color3.fromRGB(21, 255, 0)),
-            ColorSequenceKeypoint.new(0.6, Color3.fromRGB(0, 255, 255)),
-            ColorSequenceKeypoint.new(0.8, Color3.fromRGB(0, 17, 255)),
-            ColorSequenceKeypoint.new(0.9, Color3.fromRGB(255, 0, 251)),
-            ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 4))
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(255,0,4)),
+            ColorSequenceKeypoint.new(0.2, Color3.fromRGB(234,255,0)),
+            ColorSequenceKeypoint.new(0.4, Color3.fromRGB(21,255,0)),
+            ColorSequenceKeypoint.new(0.6, Color3.fromRGB(0,255,255)),
+            ColorSequenceKeypoint.new(0.8, Color3.fromRGB(0,17,255)),
+            ColorSequenceKeypoint.new(0.9, Color3.fromRGB(255,0,251)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(255,0,4))
           }
         }, HueFrame)
 
@@ -1821,12 +1814,12 @@ function Speed_Library:CreateWindow(Config)
           ZIndex = 2
         }, HueFrame)
 
+        local ColorH, ColorS, ColorV = Color3.toHSV(Default)
+
         local function UpdateVisuals()
-          ColorDisplay.BackgroundColor3 = Colorpicker.Value
+          ColorDisplay.BackgroundColor3 = Color3.fromHSV(ColorH, ColorS, ColorV)
           ColorMain.BackgroundColor3 = Color3.fromHSV(ColorH, 1, 1)
         end
-
-        local ColorH, ColorS, ColorV = Color3.toHSV(Default)
 
         local function UpdateColor()
           Colorpicker.Value = Color3.fromHSV(ColorH, ColorS, ColorV)
@@ -1834,46 +1827,50 @@ function Speed_Library:CreateWindow(Config)
           Callback(Colorpicker.Value)
         end
 
-        -- Toggle Picker
+        -- Toggle Picker (Support Mobile)
+        local function TogglePicker()
+          PickerContainer.Visible = not PickerContainer.Visible
+          ColorpickerFrame.Size = PickerContainer.Visible and UDim2.new(1, 0, 0, 205) or UDim2.new(1, 0, 0, 35)
+          UpdateSizeSection()
+        end
+
         ColorpickerFrame.InputBegan:Connect(function(input)
-          if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            PickerContainer.Visible = not PickerContainer.Visible
-            ColorpickerFrame.Size = PickerContainer.Visible and UDim2.new(1, 0, 0, 200) or UDim2.new(1, 0, 0, 35)
-            UpdateSizeSection()
+          if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            TogglePicker()
           end
         end)
 
-        -- Color Saturation Picker
-        local draggingColor = false
+        -- Dragging System (PC + Mobile)
+        local draggingColor, draggingHue = false, false
+
+        local function StartDrag(frame, isHue)
+          draggingColor = not isHue
+          draggingHue = isHue
+        end
+
         ColorMain.InputBegan:Connect(function(input)
-          if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            draggingColor = true
+          if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            StartDrag(ColorMain, false)
           end
         end)
 
-        ColorMain.InputEnded:Connect(function(input)
-          if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            draggingColor = false
-          end
-        end)
-
-        -- Hue Picker
-        local draggingHue = false
         HueFrame.InputBegan:Connect(function(input)
-          if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            draggingHue = true
+          if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            StartDrag(HueFrame, true)
           end
         end)
 
-        HueFrame.InputEnded:Connect(function(input)
-          if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        UserInputService.InputEnded:Connect(function(input)
+          if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            draggingColor = false
             draggingHue = false
           end
         end)
 
         RunService.RenderStepped:Connect(function()
+          local mousePos = UserInputService:GetMouseLocation()
+
           if draggingColor then
-            local mousePos = UserInputService:GetMouseLocation()
             local relX = math.clamp((mousePos.X - ColorMain.AbsolutePosition.X) / ColorMain.AbsoluteSize.X, 0, 1)
             local relY = math.clamp((mousePos.Y - ColorMain.AbsolutePosition.Y) / ColorMain.AbsoluteSize.Y, 0, 1)
 
@@ -1884,7 +1881,6 @@ function Speed_Library:CreateWindow(Config)
           end
 
           if draggingHue then
-            local mousePos = UserInputService:GetMouseLocation()
             local relY = math.clamp((mousePos.Y - HueFrame.AbsolutePosition.Y) / HueFrame.AbsoluteSize.Y, 0, 1)
 
             HueSelection.Position = UDim2.new(0.5, 0, relY, 0)
@@ -1893,7 +1889,7 @@ function Speed_Library:CreateWindow(Config)
           end
         end)
 
-        -- Initial Setup
+        -- Initial Position
         ColorSelection.Position = UDim2.new(ColorS, 0, 1 - ColorV, 0)
         HueSelection.Position = UDim2.new(0.5, 0, 1 - ColorH, 0)
         UpdateVisuals()
@@ -1908,7 +1904,7 @@ function Speed_Library:CreateWindow(Config)
         end
 
         ItemCount += 1
-        return Colorpicker 
+        return Colorpicker
       end
 
       function Item:AddInput(Config)
