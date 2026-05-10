@@ -1217,20 +1217,11 @@ function Speed_Library:CreateWindow(Config)
         return Sep_Funcs
       end
       
-      --// =========================
---// COLORPICKER FIX MOBILE + PC
---// =========================
-
-function Item:AddColorpicker(Config)
+      function Item:AddColorpicker(Config)
 
 	local UserInputService = game:GetService("UserInputService")
-	local Players = game:GetService("Players")
-	local RunService = game:GetService("RunService")
-
-	local Player = Players.LocalPlayer
 
 	local Title = Config.Title or "Colorpicker"
-	local Content = Config.Content or ""
 	local Default = Config.Default or Color3.fromRGB(255,0,100)
 	local Callback = Config.Callback or function() end
 
@@ -1238,121 +1229,98 @@ function Item:AddColorpicker(Config)
 		Value = Default
 	}
 
-	--// MAIN
-	local CP = Custom:Create("Frame",{
-		BackgroundColor3 = Color3.fromRGB(255,255,255),
-		BackgroundTransparency = 0.94,
-		LayoutOrder = ItemCount,
-		Size = UDim2.new(1,0,0,42)
-	},SectionAdd)
+	local h,s,v = Color3.toHSV(Default)
 
-	Custom:Create("UICorner",{
-		CornerRadius = UDim.new(0,6)
-	},CP)
+	-- MAIN ITEM
+	local Holder = Instance.new("Frame")
+	Holder.Parent = SectionAdd
+	Holder.Size = UDim2.new(1,0,0,42)
+	Holder.BackgroundColor3 = Color3.fromRGB(25,25,25)
+	Holder.BackgroundTransparency = .15
 
-	--// TITLE
-	Custom:Create("TextLabel",{
-		BackgroundTransparency = 1,
-		Position = UDim2.new(0,10,0,6),
-		Size = UDim2.new(1,-70,0,16),
-		Font = Enum.Font.GothamBold,
-		Text = Title,
-		TextSize = 13,
-		TextColor3 = Color3.fromRGB(255,255,255),
-		TextXAlignment = Enum.TextXAlignment.Left
-	},CP)
+	Instance.new("UICorner",Holder).CornerRadius = UDim.new(0,8)
 
-	--// DESC
-	Custom:Create("TextLabel",{
-		BackgroundTransparency = 1,
-		Position = UDim2.new(0,10,0,22),
-		Size = UDim2.new(1,-70,0,12),
-		Font = Enum.Font.Gotham,
-		Text = Content,
-		TextSize = 11,
-		TextTransparency = .4,
-		TextColor3 = Color3.fromRGB(255,255,255),
-		TextXAlignment = Enum.TextXAlignment.Left
-	},CP)
+	local TitleLabel = Instance.new("TextLabel")
+	TitleLabel.Parent = Holder
+	TitleLabel.BackgroundTransparency = 1
+	TitleLabel.Position = UDim2.new(0,10,0,0)
+	TitleLabel.Size = UDim2.new(1,-60,1,0)
+	TitleLabel.Font = Enum.Font.GothamBold
+	TitleLabel.Text = Title
+	TitleLabel.TextColor3 = Color3.new(1,1,1)
+	TitleLabel.TextSize = 14
+	TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
 
-	--// PREVIEW
-	local Preview = Custom:Create("Frame",{
-		Size = UDim2.fromOffset(28,28),
-		Position = UDim2.new(1,-10,0.5,0),
-		AnchorPoint = Vector2.new(1,.5),
-		BackgroundColor3 = Default
-	},CP)
+	local Preview = Instance.new("TextButton")
+	Preview.Parent = Holder
+	Preview.Size = UDim2.fromOffset(28,28)
+	Preview.Position = UDim2.new(1,-10,.5,0)
+	Preview.AnchorPoint = Vector2.new(1,.5)
+	Preview.BackgroundColor3 = Default
+	Preview.Text = ""
 
-	Custom:Create("UICorner",{
-		CornerRadius = UDim.new(0,6)
-	},Preview)
+	Instance.new("UICorner",Preview).CornerRadius = UDim.new(0,8)
 
-	Custom:Create("UIStroke",{
-		Thickness = 1.5,
-		Color = Color3.fromRGB(60,60,60)
-	},Preview)
+	-- GUI
+	local GuiParent = gethui and gethui() or game.CoreGui
 
-	--// GUI
-	local ParentGui
+	local Screen = Instance.new("ScreenGui")
+	Screen.Parent = GuiParent
+	Screen.ResetOnSpawn = false
 
-	pcall(function()
-		ParentGui = gethui()
-	end)
+	-- DIALOG
+	local Dialog = Instance.new("Frame")
+	Dialog.Parent = Screen
+	Dialog.Visible = false
+	Dialog.Size = UDim2.fromOffset(440,300)
+	Dialog.Position = UDim2.new(.5,-220,.5,-150)
+	Dialog.BackgroundColor3 = Color3.fromRGB(18,18,18)
 
-	if not ParentGui then
-		ParentGui = game.CoreGui
-	end
-
-	local PickerGui = Instance.new("ScreenGui")
-	PickerGui.Name = "ColorpickerGui"
-	PickerGui.ResetOnSpawn = false
-	PickerGui.Parent = ParentGui
-
-	--// PICKER FRAME
-	local Picker = Instance.new("Frame")
-	Picker.Size = UDim2.fromOffset(320,260)
-	Picker.Position = UDim2.new(.5,-160,.5,-130)
-	Picker.BackgroundColor3 = Color3.fromRGB(20,20,20)
-	Picker.Visible = false
-	Picker.ZIndex = 999
-	Picker.Parent = PickerGui
-
-	Instance.new("UICorner",Picker).CornerRadius = UDim.new(0,10)
+	Instance.new("UICorner",Dialog).CornerRadius = UDim.new(0,16)
 
 	local Stroke = Instance.new("UIStroke")
-	Stroke.Parent = Picker
-	Stroke.Color = Color3.fromRGB(55,55,55)
+	Stroke.Parent = Dialog
+	Stroke.Color = Color3.fromRGB(45,45,45)
 
-	--// SAT MAP
+	-- TITLE
+	local DialogTitle = Instance.new("TextLabel")
+	DialogTitle.Parent = Dialog
+	DialogTitle.BackgroundTransparency = 1
+	DialogTitle.Position = UDim2.fromOffset(18,14)
+	DialogTitle.Size = UDim2.new(1,0,0,24)
+	DialogTitle.Font = Enum.Font.GothamBold
+	DialogTitle.Text = Title
+	DialogTitle.TextColor3 = Color3.new(1,1,1)
+	DialogTitle.TextSize = 18
+	DialogTitle.TextXAlignment = Enum.TextXAlignment.Left
+
+	-- SATURATION
 	local SatMap = Instance.new("ImageLabel")
-	SatMap.Parent = Picker
-	SatMap.BackgroundColor3 = Color3.fromHSV(0,1,1)
-	SatMap.Position = UDim2.fromOffset(20,20)
-	SatMap.Size = UDim2.fromOffset(180,180)
+	SatMap.Parent = Dialog
+	SatMap.Position = UDim2.fromOffset(18,50)
+	SatMap.Size = UDim2.fromOffset(170,170)
 	SatMap.Image = "rbxassetid://4155801252"
-	SatMap.ZIndex = 1000
+	SatMap.BackgroundColor3 = Color3.fromHSV(h,1,1)
 
-	Instance.new("UICorner",SatMap).CornerRadius = UDim.new(0,8)
+	Instance.new("UICorner",SatMap).CornerRadius = UDim.new(0,10)
 
-	--// SV CURSOR
-	local SVCursor = Instance.new("Frame")
-	SVCursor.Parent = SatMap
-	SVCursor.Size = UDim2.fromOffset(16,16)
-	SVCursor.AnchorPoint = Vector2.new(.5,.5)
-	SVCursor.BackgroundColor3 = Color3.new(1,1,1)
+	local Cursor = Instance.new("Frame")
+	Cursor.Parent = SatMap
+	Cursor.Size = UDim2.fromOffset(14,14)
+	Cursor.AnchorPoint = Vector2.new(.5,.5)
+	Cursor.BackgroundColor3 = Color3.new(1,1,1)
 
-	Instance.new("UICorner",SVCursor).CornerRadius = UDim.new(1,0)
+	Instance.new("UICorner",Cursor).CornerRadius = UDim.new(1,0)
 
-	local SVStroke = Instance.new("UIStroke")
-	SVStroke.Parent = SVCursor
-	SVStroke.Thickness = 2
-	SVStroke.Color = Color3.new(1,1,1)
+	local CursorStroke = Instance.new("UIStroke")
+	CursorStroke.Parent = Cursor
+	CursorStroke.Thickness = 2
 
-	--// HUE SLIDER
+	-- HUE
 	local Hue = Instance.new("Frame")
-	Hue.Parent = Picker
-	Hue.Position = UDim2.fromOffset(220,20)
-	Hue.Size = UDim2.fromOffset(20,180)
+	Hue.Parent = Dialog
+	Hue.Position = UDim2.fromOffset(205,50)
+	Hue.Size = UDim2.fromOffset(10,170)
 
 	local HueGradient = Instance.new("UIGradient")
 	HueGradient.Parent = Hue
@@ -1367,30 +1335,56 @@ function Item:AddColorpicker(Config)
 		ColorSequenceKeypoint.new(1,Color3.fromRGB(255,0,0))
 	})
 
-	Instance.new("UICorner",Hue).CornerRadius = UDim.new(0,8)
+	Instance.new("UICorner",Hue).CornerRadius = UDim.new(1,0)
 
 	local HueCursor = Instance.new("Frame")
 	HueCursor.Parent = Hue
-	HueCursor.Size = UDim2.new(1,0,0,12)
+	HueCursor.Size = UDim2.new(1,0,0,6)
 	HueCursor.BackgroundColor3 = Color3.new(1,1,1)
 
-	Instance.new("UICorner",HueCursor).CornerRadius = UDim.new(0,4)
+	Instance.new("UICorner",HueCursor).CornerRadius = UDim.new(1,0)
 
-	--// APPLY
+	-- PREVIEW
+	local OldPreview = Instance.new("Frame")
+	OldPreview.Parent = Dialog
+	OldPreview.Position = UDim2.fromOffset(18,232)
+	OldPreview.Size = UDim2.fromOffset(80,24)
+	OldPreview.BackgroundColor3 = Default
+
+	Instance.new("UICorner",OldPreview).CornerRadius = UDim.new(0,8)
+
+	local NewPreview = Instance.new("Frame")
+	NewPreview.Parent = Dialog
+	NewPreview.Position = UDim2.fromOffset(108,232)
+	NewPreview.Size = UDim2.fromOffset(80,24)
+	NewPreview.BackgroundColor3 = Default
+
+	Instance.new("UICorner",NewPreview).CornerRadius = UDim.new(0,8)
+
+	-- APPLY
 	local Apply = Instance.new("TextButton")
-	Apply.Parent = Picker
+	Apply.Parent = Dialog
+	Apply.Position = UDim2.new(1,-140,1,-52)
 	Apply.Size = UDim2.fromOffset(120,36)
-	Apply.Position = UDim2.new(.5,-60,1,-50)
+	Apply.BackgroundColor3 = Color3.fromRGB(80,80,90)
 	Apply.Text = "Apply"
 	Apply.Font = Enum.Font.GothamBold
 	Apply.TextSize = 14
 	Apply.TextColor3 = Color3.new(1,1,1)
-	Apply.BackgroundColor3 = Color3.fromRGB(40,40,40)
 
-	Instance.new("UICorner",Apply).CornerRadius = UDim.new(0,8)
+	Instance.new("UICorner",Apply).CornerRadius = UDim.new(0,10)
 
-	--// HSV
-	local h,s,v = Color3.toHSV(Default)
+	local Cancel = Instance.new("TextButton")
+	Cancel.Parent = Dialog
+	Cancel.Position = UDim2.new(1,-270,1,-52)
+	Cancel.Size = UDim2.fromOffset(120,36)
+	Cancel.BackgroundColor3 = Color3.fromRGB(35,35,35)
+	Cancel.Text = "Cancel"
+	Cancel.Font = Enum.Font.GothamBold
+	Cancel.TextSize = 14
+	Cancel.TextColor3 = Color3.new(1,1,1)
+
+	Instance.new("UICorner",Cancel).CornerRadius = UDim.new(0,10)
 
 	local function UpdateVisual()
 
@@ -1398,7 +1392,7 @@ function Item:AddColorpicker(Config)
 
 		SatMap.BackgroundColor3 = Color3.fromHSV(h,1,1)
 
-		SVCursor.Position = UDim2.new(
+		Cursor.Position = UDim2.new(
 			s,
 			0,
 			1-v,
@@ -1409,121 +1403,94 @@ function Item:AddColorpicker(Config)
 			0,
 			0,
 			h,
-			-6
+			-3
 		)
 
-		Preview.BackgroundColor3 = clr
+		NewPreview.BackgroundColor3 = clr
 	end
 
 	UpdateVisual()
 
-	--// DRAG
-	local draggingSV = false
-	local draggingHue = false
+	local dragSV = false
+	local dragHue = false
 
-	local function UpdateSV(pos)
-
-		local x = math.clamp(
-			(pos.X - SatMap.AbsolutePosition.X)
-			/ SatMap.AbsoluteSize.X,
-			0,
-			1
-		)
-
-		local y = math.clamp(
-			(pos.Y - SatMap.AbsolutePosition.Y)
-			/ SatMap.AbsoluteSize.Y,
-			0,
-			1
-		)
-
-		s = x
-		v = 1-y
-
-		UpdateVisual()
-	end
-
-	local function UpdateHue(pos)
-
-		local y = math.clamp(
-			(pos.Y - Hue.AbsolutePosition.Y)
-			/ Hue.AbsoluteSize.Y,
-			0,
-			1
-		)
-
-		h = y
-
-		UpdateVisual()
-	end
-
-	SatMap.InputBegan:Connect(function(input)
-
-		if input.UserInputType == Enum.UserInputType.MouseButton1
-		or input.UserInputType == Enum.UserInputType.Touch then
-
-			draggingSV = true
-			UpdateSV(input.Position)
+	SatMap.InputBegan:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1
+		or i.UserInputType == Enum.UserInputType.Touch then
+			dragSV = true
 		end
 	end)
 
-	Hue.InputBegan:Connect(function(input)
-
-		if input.UserInputType == Enum.UserInputType.MouseButton1
-		or input.UserInputType == Enum.UserInputType.Touch then
-
-			draggingHue = true
-			UpdateHue(input.Position)
+	Hue.InputBegan:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1
+		or i.UserInputType == Enum.UserInputType.Touch then
+			dragHue = true
 		end
 	end)
 
-	UserInputService.InputChanged:Connect(function(input)
+	UserInputService.InputChanged:Connect(function(i)
 
-		if draggingSV then
+		if dragSV then
 
-			if input.UserInputType == Enum.UserInputType.MouseMovement
-			or input.UserInputType == Enum.UserInputType.Touch then
+			local x = math.clamp(
+				(i.Position.X - SatMap.AbsolutePosition.X)
+				/ SatMap.AbsoluteSize.X,
+				0,
+				1
+			)
 
-				UpdateSV(input.Position)
-			end
-		end
+			local y = math.clamp(
+				(i.Position.Y - SatMap.AbsolutePosition.Y)
+				/ SatMap.AbsoluteSize.Y,
+				0,
+				1
+			)
 
-		if draggingHue then
-
-			if input.UserInputType == Enum.UserInputType.MouseMovement
-			or input.UserInputType == Enum.UserInputType.Touch then
-
-				UpdateHue(input.Position)
-			end
-		end
-	end)
-
-	UserInputService.InputEnded:Connect(function(input)
-
-		if input.UserInputType == Enum.UserInputType.MouseButton1
-		or input.UserInputType == Enum.UserInputType.Touch then
-
-			draggingSV = false
-			draggingHue = false
-		end
-	end)
-
-	--// OPEN
-	CP.InputBegan:Connect(function(input)
-
-		if input.UserInputType == Enum.UserInputType.MouseButton1
-		or input.UserInputType == Enum.UserInputType.Touch then
-
-			h,s,v = Color3.toHSV(Funcs.Value)
+			s = x
+			v = 1-y
 
 			UpdateVisual()
+		end
 
-			Picker.Visible = true
+		if dragHue then
+
+			local y = math.clamp(
+				(i.Position.Y - Hue.AbsolutePosition.Y)
+				/ Hue.AbsoluteSize.Y,
+				0,
+				1
+			)
+
+			h = y
+
+			UpdateVisual()
 		end
 	end)
 
-	--// APPLY
-	Apply.Activated:Connect(function()
+	UserInputService.InputEnded:Connect(function(i)
+
+		if i.UserInputType == Enum.UserInputType.MouseButton1
+		or i.UserInputType == Enum.UserInputType.Touch then
+
+			dragSV = false
+			dragHue = false
+		end
+	end)
+
+	Preview.MouseButton1Click:Connect(function()
+
+		h,s,v = Color3.toHSV(Funcs.Value)
+
+		UpdateVisual()
+
+		Dialog.Visible = true
+	end)
+
+	Cancel.MouseButton1Click:Connect(function()
+		Dialog.Visible = false
+	end)
+
+	Apply.MouseButton1Click:Connect(function()
 
 		local clr = Color3.fromHSV(h,s,v)
 
@@ -1533,29 +1500,25 @@ function Item:AddColorpicker(Config)
 
 		Callback(clr)
 
-		Picker.Visible = false
+		Dialog.Visible = false
 	end)
 
-	function Funcs:Set(color)
+	function Funcs:Set(Color)
 
-		if color then
+		if Color then
 
-			Funcs.Value = color
+			Funcs.Value = Color
 
-			h,s,v = Color3.toHSV(color)
+			Preview.BackgroundColor3 = Color
 
-			Preview.BackgroundColor3 = color
+			h,s,v = Color3.toHSV(Color)
 
 			UpdateVisual()
-
-			Callback(color)
 		end
 	end
 
-	ItemCount += 1
-
 	return Funcs
-end
+end 
 
       function Item:AddLine()
         local LineFuncs = {}
