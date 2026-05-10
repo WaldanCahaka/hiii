@@ -1271,16 +1271,20 @@ function Speed_Library:CreateWindow(Config)
 	--// GUI
 	local ParentGui = gethui and gethui() or game.CoreGui
 
+	-- Hapus ScreenGui lama jika ada
+	local ExistingGui = ParentGui:FindFirstChild("ColorpickerUI")
+	if ExistingGui then ExistingGui:Destroy() end
+
 	local Screen = Instance.new("ScreenGui")
 	Screen.Parent = ParentGui
 	Screen.ResetOnSpawn = false
 	Screen.Name = "ColorpickerUI"
 
-	--// BACKGROUND
+	--// BACKGROUND (PERBAIKI POSISI)
 	local Back = Instance.new("Frame")
 	Back.Parent = Screen
 	Back.Size = UDim2.fromOffset(420,270)
-	Back.Position = UDim2.new(.5,-210,.5,-135)
+	Back.Position = UDim2.new(0.5, -210, 0.5, -135)  -- Perbaiki anchor point
 	Back.BackgroundColor3 = Color3.fromRGB(15,15,15)
 	Back.Visible = false
 	Back.BorderSizePixel = 0
@@ -1446,67 +1450,53 @@ function Speed_Library:CreateWindow(Config)
 	local DragHue = false
 
 	SatMap.InputBegan:Connect(function(i)
-
 		if i.UserInputType == Enum.UserInputType.MouseButton1
 		or i.UserInputType == Enum.UserInputType.Touch then
-
 			DragSV = true
 		end
 	end)
 
 	Hue.InputBegan:Connect(function(i)
-
 		if i.UserInputType == Enum.UserInputType.MouseButton1
 		or i.UserInputType == Enum.UserInputType.Touch then
-
 			DragHue = true
 		end
 	end)
 
 	UIS.InputChanged:Connect(function(i)
-
 		if DragSV then
-
 			local x = math.clamp(
 				(i.Position.X - SatMap.AbsolutePosition.X)
 				/ SatMap.AbsoluteSize.X,
 				0,
 				1
 			)
-
 			local y = math.clamp(
 				(i.Position.Y - SatMap.AbsolutePosition.Y)
 				/ SatMap.AbsoluteSize.Y,
 				0,
 				1
 			)
-
 			s = x
 			v = 1-y
-
 			UpdateVisual()
 		end
 
 		if DragHue then
-
 			local y = math.clamp(
 				(i.Position.Y - Hue.AbsolutePosition.Y)
 				/ Hue.AbsoluteSize.Y,
 				0,
 				1
 			)
-
 			h = y
-
 			UpdateVisual()
 		end
 	end)
 
 	UIS.InputEnded:Connect(function(i)
-
 		if i.UserInputType == Enum.UserInputType.MouseButton1
 		or i.UserInputType == Enum.UserInputType.Touch then
-
 			DragSV = false
 			DragHue = false
 		end
@@ -1514,50 +1504,36 @@ function Speed_Library:CreateWindow(Config)
 
 	--// OPEN
 	Preview.MouseButton1Click:Connect(function()
-
 		h,s,v = Color3.toHSV(Funcs.Value)
-
 		UpdateVisual()
-
 		Back.Visible = true
 	end)
 
 	--// CLOSE
 	Cancel.MouseButton1Click:Connect(function()
-
 		Back.Visible = false
 	end)
 
 	--// APPLY
 	Apply.MouseButton1Click:Connect(function()
-
 		local clr = Color3.fromHSV(h,s,v)
-
 		Funcs.Value = clr
-
 		Preview.BackgroundColor3 = clr
-
 		Callback(clr)
-
 		Back.Visible = false
 	end)
 
 	function Funcs:Set(Color)
-
 		if Color then
-
 			Funcs.Value = Color
-
 			Preview.BackgroundColor3 = Color
-
 			h,s,v = Color3.toHSV(Color)
-
 			UpdateVisual()
 		end
 	end
 
 	return Funcs
-end
+end 
 
       function Item:AddLine()
         local LineFuncs = {}
