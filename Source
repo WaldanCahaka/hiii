@@ -1902,7 +1902,7 @@ function Speed_Library:CreateWindow(Config)
 
         ItemCount += 1
         return Colorpicker
-      end
+      end 
 
       function Item:AddInput(Config)
         local Title = Config[1] or Config.Title or ""
