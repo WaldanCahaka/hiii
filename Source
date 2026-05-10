@@ -1216,85 +1216,83 @@ function Speed_Library:CreateWindow(Config)
         ItemCount += 1
         return Sep_Funcs
       end
-      -- ==================== COLORPICKER MOBILE + PC FIX ====================
+      
+      --// =========================
+--// COLORPICKER FIX MOBILE + PC
+--// =========================
 
 function Item:AddColorpicker(Config)
-	local Title = Config.Title or Config[1] or "Colorpicker"
-	local Content = Config.Content or Config[2] or ""
-	local Default = Config.Default or Config[3] or Color3.fromRGB(255, 0, 100)
-	local Transparency = Config.Transparency or Config[4] or false
-	local Callback = Config.Callback or Config[5] or function() end
+
+	local UserInputService = game:GetService("UserInputService")
+	local Players = game:GetService("Players")
+	local RunService = game:GetService("RunService")
+
+	local Player = Players.LocalPlayer
+
+	local Title = Config.Title or "Colorpicker"
+	local Content = Config.Content or ""
+	local Default = Config.Default or Color3.fromRGB(255,0,100)
+	local Callback = Config.Callback or function() end
 
 	local Funcs = {
-		Value = Default,
-		Transparency = Transparency and 0 or nil
+		Value = Default
 	}
 
-	local CP = Custom:Create("Frame", {
+	--// MAIN
+	local CP = Custom:Create("Frame",{
 		BackgroundColor3 = Color3.fromRGB(255,255,255),
-		BackgroundTransparency = 0.935,
+		BackgroundTransparency = 0.94,
 		LayoutOrder = ItemCount,
-		Size = UDim2.new(1,0,0,35),
-		Name = "Colorpicker"
-	}, SectionAdd)
+		Size = UDim2.new(1,0,0,42)
+	},SectionAdd)
 
-	Custom:Create("UICorner", {
-		CornerRadius = UDim.new(0,4)
-	}, CP)
+	Custom:Create("UICorner",{
+		CornerRadius = UDim.new(0,6)
+	},CP)
 
-	Custom:Create("TextLabel", {
+	--// TITLE
+	Custom:Create("TextLabel",{
+		BackgroundTransparency = 1,
+		Position = UDim2.new(0,10,0,6),
+		Size = UDim2.new(1,-70,0,16),
 		Font = Enum.Font.GothamBold,
 		Text = Title,
-		TextColor3 = Color3.fromRGB(231,231,231),
 		TextSize = 13,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		BackgroundTransparency = 1,
-		Position = UDim2.new(0,10,0,10),
-		Size = UDim2.new(1,-140,0,13)
-	}, CP)
+		TextColor3 = Color3.fromRGB(255,255,255),
+		TextXAlignment = Enum.TextXAlignment.Left
+	},CP)
 
-	local ContentLabel = Custom:Create("TextLabel", {
+	--// DESC
+	Custom:Create("TextLabel",{
+		BackgroundTransparency = 1,
+		Position = UDim2.new(0,10,0,22),
+		Size = UDim2.new(1,-70,0,12),
 		Font = Enum.Font.Gotham,
 		Text = Content,
+		TextSize = 11,
+		TextTransparency = .4,
 		TextColor3 = Color3.fromRGB(255,255,255),
-		TextTransparency = 0.6,
-		TextSize = 12,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		BackgroundTransparency = 1,
-		Position = UDim2.new(0,10,0,23),
-		Size = UDim2.new(1,-140,0,12)
-	}, CP)
+		TextXAlignment = Enum.TextXAlignment.Left
+	},CP)
 
-	local Preview = Custom:Create("Frame", {
-		BackgroundColor3 = Default,
-		Size = UDim2.new(0,32,0,32),
-		Position = UDim2.new(1,-40,0.5,0),
-		AnchorPoint = Vector2.new(1,0.5)
-	}, CP)
+	--// PREVIEW
+	local Preview = Custom:Create("Frame",{
+		Size = UDim2.fromOffset(28,28),
+		Position = UDim2.new(1,-10,0.5,0),
+		AnchorPoint = Vector2.new(1,.5),
+		BackgroundColor3 = Default
+	},CP)
 
-	Custom:Create("UICorner", {
+	Custom:Create("UICorner",{
 		CornerRadius = UDim.new(0,6)
-	}, Preview)
+	},Preview)
 
-	Custom:Create("UIStroke", {
-		Color = Color3.fromRGB(55,55,55),
-		Thickness = 1.5
-	}, Preview)
+	Custom:Create("UIStroke",{
+		Thickness = 1.5,
+		Color = Color3.fromRGB(60,60,60)
+	},Preview)
 
-	local function UpdateSize()
-		local lines = math.ceil(ContentLabel.TextBounds.X / ContentLabel.AbsoluteSize.X)
-
-		ContentLabel.Size = UDim2.new(1,-140,0,12 + 12*lines)
-		CP.Size = UDim2.new(1,0,0,ContentLabel.AbsoluteSize.Y + 33)
-
-		UpdateSizeSection()
-	end
-
-	ContentLabel:GetPropertyChangedSignal("AbsoluteSize"):Connect(UpdateSize)
-
-	UpdateSize()
-
-	-- GUI
+	--// GUI
 	local ParentGui
 
 	pcall(function()
@@ -1302,145 +1300,116 @@ function Item:AddColorpicker(Config)
 	end)
 
 	if not ParentGui then
-		ParentGui = game:GetService("CoreGui")
+		ParentGui = game.CoreGui
 	end
 
-	local PickerGui = Custom:Create("ScreenGui", {
-		ResetOnSpawn = false,
-		Name = "ColorpickerGui"
-	}, ParentGui)
+	local PickerGui = Instance.new("ScreenGui")
+	PickerGui.Name = "ColorpickerGui"
+	PickerGui.ResetOnSpawn = false
+	PickerGui.Parent = ParentGui
 
-	local Picker = Custom:Create("Frame", {
-		Size = UDim2.fromOffset(370, 340),
-		Position = UDim2.new(0.5,-185,0.5,-170),
-		BackgroundColor3 = Color3.fromRGB(18,18,18),
-		Visible = false,
-		ZIndex = 10000
-	}, PickerGui)
+	--// PICKER FRAME
+	local Picker = Instance.new("Frame")
+	Picker.Size = UDim2.fromOffset(320,260)
+	Picker.Position = UDim2.new(.5,-160,.5,-130)
+	Picker.BackgroundColor3 = Color3.fromRGB(20,20,20)
+	Picker.Visible = false
+	Picker.ZIndex = 999
+	Picker.Parent = PickerGui
 
-	Custom:Create("UICorner", {
-		CornerRadius = UDim.new(0,10)
-	}, Picker)
+	Instance.new("UICorner",Picker).CornerRadius = UDim.new(0,10)
 
-	Custom:Create("UIStroke", {
-		Color = Color3.fromRGB(50,50,50),
-		Thickness = 2
-	}, Picker)
+	local Stroke = Instance.new("UIStroke")
+	Stroke.Parent = Picker
+	Stroke.Color = Color3.fromRGB(55,55,55)
 
-	-- SATURATION MAP
-	local SatVibMap = Custom:Create("ImageLabel", {
-		Size = UDim2.fromOffset(220,220),
-		Position = UDim2.fromOffset(25,30),
-		Image = "rbxassetid://4155801252",
-		BackgroundColor3 = Color3.fromHSV(0,1,1),
-		ZIndex = 10001
-	}, Picker)
+	--// SAT MAP
+	local SatMap = Instance.new("ImageLabel")
+	SatMap.Parent = Picker
+	SatMap.BackgroundColor3 = Color3.fromHSV(0,1,1)
+	SatMap.Position = UDim2.fromOffset(20,20)
+	SatMap.Size = UDim2.fromOffset(180,180)
+	SatMap.Image = "rbxassetid://4155801252"
+	SatMap.ZIndex = 1000
 
-	Custom:Create("UICorner", {
-		CornerRadius = UDim.new(0,8)
-	}, SatVibMap)
+	Instance.new("UICorner",SatMap).CornerRadius = UDim.new(0,8)
 
-	local SV_Cursor = Custom:Create("Frame", {
-		Size = UDim2.fromOffset(18,18),
-		AnchorPoint = Vector2.new(0.5,0.5),
-		BackgroundColor3 = Color3.new(1,1,1),
-		ZIndex = 10002
-	}, SatVibMap)
+	--// SV CURSOR
+	local SVCursor = Instance.new("Frame")
+	SVCursor.Parent = SatMap
+	SVCursor.Size = UDim2.fromOffset(16,16)
+	SVCursor.AnchorPoint = Vector2.new(.5,.5)
+	SVCursor.BackgroundColor3 = Color3.new(1,1,1)
 
-	Custom:Create("UICorner", {
-		CornerRadius = UDim.new(1,0)
-	}, SV_Cursor)
+	Instance.new("UICorner",SVCursor).CornerRadius = UDim.new(1,0)
 
-	Custom:Create("UIStroke", {
-		Thickness = 2,
-		Color = Color3.new(1,1,1)
-	}, SV_Cursor)
+	local SVStroke = Instance.new("UIStroke")
+	SVStroke.Parent = SVCursor
+	SVStroke.Thickness = 2
+	SVStroke.Color = Color3.new(1,1,1)
 
-	-- HUE
-	local HueSlider = Custom:Create("Frame", {
-		Size = UDim2.fromOffset(24,220),
-		Position = UDim2.fromOffset(270,30),
-		ZIndex = 10001
-	}, Picker)
+	--// HUE SLIDER
+	local Hue = Instance.new("Frame")
+	Hue.Parent = Picker
+	Hue.Position = UDim2.fromOffset(220,20)
+	Hue.Size = UDim2.fromOffset(20,180)
 
-	local seq = {}
+	local HueGradient = Instance.new("UIGradient")
+	HueGradient.Parent = Hue
+	HueGradient.Rotation = 90
+	HueGradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0,Color3.fromRGB(255,0,0)),
+		ColorSequenceKeypoint.new(.16,Color3.fromRGB(255,255,0)),
+		ColorSequenceKeypoint.new(.33,Color3.fromRGB(0,255,0)),
+		ColorSequenceKeypoint.new(.5,Color3.fromRGB(0,255,255)),
+		ColorSequenceKeypoint.new(.66,Color3.fromRGB(0,0,255)),
+		ColorSequenceKeypoint.new(.83,Color3.fromRGB(255,0,255)),
+		ColorSequenceKeypoint.new(1,Color3.fromRGB(255,0,0))
+	})
 
-	for i = 0,1,0.1 do
-		table.insert(seq,
-			ColorSequenceKeypoint.new(i, Color3.fromHSV(i,1,1))
-		)
-	end
+	Instance.new("UICorner",Hue).CornerRadius = UDim.new(0,8)
 
-	Custom:Create("UIGradient", {
-		Rotation = 90,
-		Color = ColorSequence.new(seq)
-	}, HueSlider)
+	local HueCursor = Instance.new("Frame")
+	HueCursor.Parent = Hue
+	HueCursor.Size = UDim2.new(1,0,0,12)
+	HueCursor.BackgroundColor3 = Color3.new(1,1,1)
 
-	Custom:Create("UICorner", {
-		CornerRadius = UDim.new(0,8)
-	}, HueSlider)
+	Instance.new("UICorner",HueCursor).CornerRadius = UDim.new(0,4)
 
-	local Hue_Cursor = Custom:Create("Frame", {
-		Size = UDim2.new(1,0,0,14),
-		BackgroundColor3 = Color3.new(1,1,1),
-		ZIndex = 10002
-	}, HueSlider)
+	--// APPLY
+	local Apply = Instance.new("TextButton")
+	Apply.Parent = Picker
+	Apply.Size = UDim2.fromOffset(120,36)
+	Apply.Position = UDim2.new(.5,-60,1,-50)
+	Apply.Text = "Apply"
+	Apply.Font = Enum.Font.GothamBold
+	Apply.TextSize = 14
+	Apply.TextColor3 = Color3.new(1,1,1)
+	Apply.BackgroundColor3 = Color3.fromRGB(40,40,40)
 
-	Custom:Create("UICorner", {
-		CornerRadius = UDim.new(0,4)
-	}, Hue_Cursor)
+	Instance.new("UICorner",Apply).CornerRadius = UDim.new(0,8)
 
-	-- BUTTONS
-	local CancelBtn = Custom:Create("TextButton", {
-		Text = "Cancel",
-		BackgroundColor3 = Color3.fromRGB(45,45,45),
-		TextColor3 = Color3.new(1,1,1),
-		Size = UDim2.new(0.45,0,0,45),
-		Position = UDim2.new(0.03,0,1,-65),
-		TextSize = 14,
-		Font = Enum.Font.GothamBold,
-		ZIndex = 10001
-	}, Picker)
-
-	local ApplyBtn = Custom:Create("TextButton", {
-		Text = "Apply",
-		BackgroundColor3 = Custom.ColorRGB,
-		TextColor3 = Color3.new(1,1,1),
-		Size = UDim2.new(0.45,0,0,45),
-		Position = UDim2.new(0.52,0,1,-65),
-		TextSize = 14,
-		Font = Enum.Font.GothamBold,
-		ZIndex = 10001
-	}, Picker)
-
-	Custom:Create("UICorner", {
-		CornerRadius = UDim.new(0,8)
-	}, CancelBtn)
-
-	Custom:Create("UICorner", {
-		CornerRadius = UDim.new(0,8)
-	}, ApplyBtn)
-
-	-- HSV
+	--// HSV
 	local h,s,v = Color3.toHSV(Default)
 
 	local function UpdateVisual()
+
 		local clr = Color3.fromHSV(h,s,v)
 
-		SatVibMap.BackgroundColor3 = Color3.fromHSV(h,1,1)
+		SatMap.BackgroundColor3 = Color3.fromHSV(h,1,1)
 
-		SV_Cursor.Position = UDim2.new(
+		SVCursor.Position = UDim2.new(
 			s,
 			0,
 			1-v,
 			0
 		)
 
-		Hue_Cursor.Position = UDim2.new(
+		HueCursor.Position = UDim2.new(
 			0,
 			0,
 			h,
-			-7
+			-6
 		)
 
 		Preview.BackgroundColor3 = clr
@@ -1448,23 +1417,22 @@ function Item:AddColorpicker(Config)
 
 	UpdateVisual()
 
-	-- DRAG FIX
+	--// DRAG
 	local draggingSV = false
 	local draggingHue = false
 
-	local function UpdateSV(input)
-		local pos = input.Position
+	local function UpdateSV(pos)
 
 		local x = math.clamp(
-			(pos.X - SatVibMap.AbsolutePosition.X)
-			/ SatVibMap.AbsoluteSize.X,
+			(pos.X - SatMap.AbsolutePosition.X)
+			/ SatMap.AbsoluteSize.X,
 			0,
 			1
 		)
 
 		local y = math.clamp(
-			(pos.Y - SatVibMap.AbsolutePosition.Y)
-			/ SatVibMap.AbsoluteSize.Y,
+			(pos.Y - SatMap.AbsolutePosition.Y)
+			/ SatMap.AbsoluteSize.Y,
 			0,
 			1
 		)
@@ -1475,12 +1443,11 @@ function Item:AddColorpicker(Config)
 		UpdateVisual()
 	end
 
-	local function UpdateHue(input)
-		local pos = input.Position
+	local function UpdateHue(pos)
 
 		local y = math.clamp(
-			(pos.Y - HueSlider.AbsolutePosition.Y)
-			/ HueSlider.AbsoluteSize.Y,
+			(pos.Y - Hue.AbsolutePosition.Y)
+			/ Hue.AbsoluteSize.Y,
 			0,
 			1
 		)
@@ -1490,43 +1457,49 @@ function Item:AddColorpicker(Config)
 		UpdateVisual()
 	end
 
-	SatVibMap.InputBegan:Connect(function(input)
+	SatMap.InputBegan:Connect(function(input)
+
 		if input.UserInputType == Enum.UserInputType.MouseButton1
 		or input.UserInputType == Enum.UserInputType.Touch then
 
 			draggingSV = true
-			UpdateSV(input)
+			UpdateSV(input.Position)
 		end
 	end)
 
-	HueSlider.InputBegan:Connect(function(input)
+	Hue.InputBegan:Connect(function(input)
+
 		if input.UserInputType == Enum.UserInputType.MouseButton1
 		or input.UserInputType == Enum.UserInputType.Touch then
 
 			draggingHue = true
-			UpdateHue(input)
+			UpdateHue(input.Position)
 		end
 	end)
 
 	UserInputService.InputChanged:Connect(function(input)
+
 		if draggingSV then
+
 			if input.UserInputType == Enum.UserInputType.MouseMovement
 			or input.UserInputType == Enum.UserInputType.Touch then
 
-				UpdateSV(input)
+				UpdateSV(input.Position)
 			end
 		end
 
 		if draggingHue then
+
 			if input.UserInputType == Enum.UserInputType.MouseMovement
 			or input.UserInputType == Enum.UserInputType.Touch then
 
-				UpdateHue(input)
+				UpdateHue(input.Position)
 			end
 		end
 	end)
 
 	UserInputService.InputEnded:Connect(function(input)
+
 		if input.UserInputType == Enum.UserInputType.MouseButton1
 		or input.UserInputType == Enum.UserInputType.Touch then
 
@@ -1535,24 +1508,9 @@ function Item:AddColorpicker(Config)
 		end
 	end)
 
-	-- BUTTONS
-	CancelBtn.Activated:Connect(function()
-		Picker.Visible = false
-	end)
-
-	ApplyBtn.Activated:Connect(function()
-		Funcs.Value = Color3.fromHSV(h,s,v)
-
-		Callback(
-			Funcs.Value,
-			Funcs.Transparency
-		)
-
-		Picker.Visible = false
-	end)
-
-	-- OPEN
+	--// OPEN
 	CP.InputBegan:Connect(function(input)
+
 		if input.UserInputType == Enum.UserInputType.MouseButton1
 		or input.UserInputType == Enum.UserInputType.Touch then
 
@@ -1564,8 +1522,24 @@ function Item:AddColorpicker(Config)
 		end
 	end)
 
-	function Funcs:Set(color, alpha)
+	--// APPLY
+	Apply.Activated:Connect(function()
+
+		local clr = Color3.fromHSV(h,s,v)
+
+		Funcs.Value = clr
+
+		Preview.BackgroundColor3 = clr
+
+		Callback(clr)
+
+		Picker.Visible = false
+	end)
+
+	function Funcs:Set(color)
+
 		if color then
+
 			Funcs.Value = color
 
 			h,s,v = Color3.toHSV(color)
@@ -1574,15 +1548,14 @@ function Item:AddColorpicker(Config)
 
 			UpdateVisual()
 
-			Callback(color, alpha)
+			Callback(color)
 		end
 	end
 
 	ItemCount += 1
 
 	return Funcs
-end 
-      
+end
 
       function Item:AddLine()
         local LineFuncs = {}
