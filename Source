@@ -2201,16 +2201,16 @@ function Speed_Library:CreateWindow(Config)
         return Funcs_Dropdown
       end
       
-            
-Item:AddColorPicker = function(Config)
+            Item:AddColorPicker = function(Config)
     local Title = Config.Title or Config[1] or "Color Picker"
-    local Default = Config.Default or Config[2] or Color3.fromRGB(255, 0, 255)
+    local Default = Config.Default or Config[2] or Color3.fromRGB(255, 255, 0)
     local Callback = Config.Callback or Config[3] or function() end
 
     local h, s, v = Color3.toHSV(Default)
     local currentColor = Default
+    local oldColor = Default
 
-    -- Preview Button
+    -- Preview Button di List
     local Row = Custom:Create("Frame", {
         Size = UDim2.new(1,0,0,40),
         BackgroundTransparency = 0.94,
@@ -2241,20 +2241,19 @@ Item:AddColorPicker = function(Config)
     }, Row)
     Custom:Create("UICorner", {CornerRadius = UDim.new(0,6)}, PreviewBtn)
 
-    -- Picker Window (dibuat di CoreGui biar lebih aman)
+    -- ==================== COLOR PICKER WINDOW ====================
     local Picker = Custom:Create("Frame", {
         Size = UDim2.new(0, 460, 0, 340),
         Position = UDim2.new(0.5,0,0.5,0),
         AnchorPoint = Vector2.new(0.5,0.5),
         BackgroundColor3 = Color3.fromRGB(20,20,20),
         Visible = false,
-        ZIndex = 9999
-    }, SpeedHubXGui or game:GetService("CoreGui"))
+        ZIndex = 999
+    }, SpeedHubXGui)
 
-    Custom:Create("UICorner", {CornerRadius = UDim.new(0,12)}, Picker)
+    Custom:Create("UICorner", {CornerRadius = UDim.new(0,14)}, Picker)
     Custom:Create("UIStroke", {Thickness = 2, Color = Color3.fromRGB(255,0,0)}, Picker)
 
-    -- Title Picker
     Custom:Create("TextLabel", {
         Position = UDim2.new(0,20,0,15),
         Size = UDim2.new(1,-40,0,25),
@@ -2264,86 +2263,119 @@ Item:AddColorPicker = function(Config)
         Font = Enum.Font.GothamBold,
         TextSize = 18,
         TextXAlignment = Enum.TextXAlignment.Left,
-        ZIndex = 10000
+        ZIndex = 1000
     }, Picker)
 
-    -- SV Box + Hue (Simple)
+    -- SV Box
     local SVBox = Custom:Create("ImageButton", {
         Position = UDim2.new(0,20,0,55),
-        Size = UDim2.new(0,200,0,170),
+        Size = UDim2.new(0,210,0,180),
         BackgroundColor3 = Color3.fromHSV(h,1,1),
         Image = "rbxassetid://4155801252",
-        ZIndex = 10001
+        BorderSizePixel = 0,
+        ZIndex = 1001
     }, Picker)
     Custom:Create("UICorner", {CornerRadius = UDim.new(0,8)}, SVBox)
 
     local SVCursor = Custom:Create("Frame", {
-        Size = UDim2.new(0,14,0,14),
+        Size = UDim2.new(0,16,0,16),
         AnchorPoint = Vector2.new(0.5,0.5),
         Position = UDim2.new(s,0,1-v,0),
         BackgroundColor3 = Color3.fromRGB(255,255,255),
-        ZIndex = 10002
+        ZIndex = 1002
     }, SVBox)
     Custom:Create("UICorner", {CornerRadius = UDim.new(1,0)}, SVCursor)
     Custom:Create("UIStroke", {Thickness = 2, Color = Color3.fromRGB(0,0,0)}, SVCursor)
 
+    -- Hue Bar
     local HueBar = Custom:Create("Frame", {
-        Position = UDim2.new(0,240,0,55),
-        Size = UDim2.new(0,22,0,170),
+        Position = UDim2.new(0,250,0,55),
+        Size = UDim2.new(0,24,0,180),
         BackgroundColor3 = Color3.fromRGB(255,0,0),
-        ZIndex = 10001
+        ZIndex = 1001
     }, Picker)
     Custom:Create("UICorner", {CornerRadius = UDim.new(1,0)}, HueBar)
 
     local HueGradient = Instance.new("UIGradient")
     HueGradient.Rotation = 90
-    HueGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0,Color3.fromRGB(255,0,0)), ColorSequenceKeypoint.new(1,Color3.fromRGB(255,0,255))}
+    HueGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255,0,0)),
+        ColorSequenceKeypoint.new(0.17, Color3.fromRGB(255,255,0)),
+        ColorSequenceKeypoint.new(0.33, Color3.fromRGB(0,255,0)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0,255,255)),
+        ColorSequenceKeypoint.new(0.67, Color3.fromRGB(0,0,255)),
+        ColorSequenceKeypoint.new(0.83, Color3.fromRGB(255,0,255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255,0,0))
+    }
     HueGradient.Parent = HueBar
 
-    -- Update
-    local function Update()
+    local HueCursor = Custom:Create("Frame", {
+        Size = UDim2.new(1,10,0,10),
+        Position = UDim2.new(0.5,0,1-h,0),
+        AnchorPoint = Vector2.new(0.5,0.5),
+        BackgroundColor3 = Color3.fromRGB(255,255,255),
+        ZIndex = 1002
+    }, HueBar)
+    Custom:Create("UICorner", {CornerRadius = UDim.new(1,0)}, HueCursor)
+    Custom:Create("UIStroke", {Thickness = 1.5, Color = Color3.fromRGB(0,0,0)}, HueCursor)
+
+    -- Update Color
+    local function UpdateColor()
         currentColor = Color3.fromHSV(h, s, v)
         SVBox.BackgroundColor3 = Color3.fromHSV(h, 1, 1)
         PreviewBtn.BackgroundColor3 = currentColor
     end
-    Update()
+    UpdateColor()
 
-    -- Dragging (Simple)
-    local draggingSV = false
-    local draggingHue = false
+    -- Dragging Logic
+    local uis = game:GetService("UserInputService")
+    local dragSV, dragHue = false, false
 
-    SVBox.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then draggingSV = true end end)
-    HueBar.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then draggingHue = true end end)
+    SVBox.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            dragSV = true
+        end
+    end)
 
-    game:GetService("UserInputService").InputChanged:Connect(function(inp)
-        if draggingSV then
+    HueBar.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            dragHue = true
+        end
+    end)
+
+    uis.InputChanged:Connect(function(inp)
+        if dragSV then
             local x = math.clamp((inp.Position.X - SVBox.AbsolutePosition.X) / SVBox.AbsoluteSize.X, 0, 1)
             local y = math.clamp((inp.Position.Y - SVBox.AbsolutePosition.Y) / SVBox.AbsoluteSize.Y, 0, 1)
-            s = x; v = 1-y
-            SVCursor.Position = UDim2.new(x,0,y,0)
-            Update()
+            s = x
+            v = 1 - y
+            SVCursor.Position = UDim2.new(x, 0, y, 0)
+            UpdateColor()
         end
-        if draggingHue then
+        if dragHue then
             local y = math.clamp((inp.Position.Y - HueBar.AbsolutePosition.Y) / HueBar.AbsoluteSize.Y, 0, 1)
-            h = 1-y
-            Update()
+            h = 1 - y
+            HueCursor.Position = UDim2.new(0.5, 0, y, 0)
+            UpdateColor()
         end
     end)
 
-    game:GetService("UserInputService").InputEnded:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 then
-            draggingSV = false
-            draggingHue = false
+    uis.InputEnded:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            dragSV = false
+            dragHue = false
         end
     end)
 
+    -- Open Picker
     PreviewBtn.MouseButton1Click:Connect(function()
         Picker.Visible = not Picker.Visible
     end)
 
     ItemCount += 1
     return {Value = currentColor}
-end
+end 
+
      
 
       ItemCount += 1
