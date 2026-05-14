@@ -2201,7 +2201,8 @@ function Speed_Library:CreateWindow(Config)
         return Funcs_Dropdown
       end
       
-            Item:AddColorPicker = function(Config)
+            
+Item:AddColorPicker = function(Config)
     local Title = Config.Title or Config[1] or "Color Picker"
     local Default = Config.Default or Config[2] or Color3.fromRGB(255, 255, 0)
     local Callback = Config.Callback or Config[3] or function() end
@@ -2210,7 +2211,7 @@ function Speed_Library:CreateWindow(Config)
     local currentColor = Default
     local oldColor = Default
 
-    -- Preview di List
+    -- Preview Button di List
     local Row = Custom:Create("Frame", {
         Size = UDim2.new(1,0,0,40),
         BackgroundTransparency = 0.94,
@@ -2241,9 +2242,9 @@ function Speed_Library:CreateWindow(Config)
     }, Row)
     Custom:Create("UICorner", {CornerRadius = UDim.new(0,6)}, PreviewBtn)
 
-    -- ==================== MAIN PICKER ====================
+    -- ==================== COLOR PICKER WINDOW ====================
     local Picker = Custom:Create("Frame", {
-        Size = UDim2.new(0, 520, 0, 380),
+        Size = UDim2.new(0, 520, 0, 390),
         Position = UDim2.new(0.5,0,0.5,0),
         AnchorPoint = Vector2.new(0.5,0.5),
         BackgroundColor3 = Color3.fromRGB(18,18,18),
@@ -2296,7 +2297,9 @@ function Speed_Library:CreateWindow(Config)
     }, Picker)
     Custom:Create("UICorner", {CornerRadius = UDim.new(1,0)}, HueBar)
 
-    Instance.new("UIGradient", HueBar).Color = ColorSequence.new{
+    local HueGradient = Instance.new("UIGradient")
+    HueGradient.Rotation = 90
+    HueGradient.Color = ColorSequence.new{
         ColorSequenceKeypoint.new(0, Color3.fromRGB(255,0,0)),
         ColorSequenceKeypoint.new(0.17, Color3.fromRGB(255,255,0)),
         ColorSequenceKeypoint.new(0.33, Color3.fromRGB(0,255,0)),
@@ -2305,7 +2308,7 @@ function Speed_Library:CreateWindow(Config)
         ColorSequenceKeypoint.new(0.83, Color3.fromRGB(255,0,255)),
         ColorSequenceKeypoint.new(1, Color3.fromRGB(255,0,0))
     }
-    Instance.new("UIGradient", HueBar).Rotation = 90
+    HueGradient.Parent = HueBar
 
     local HueCursor = Custom:Create("Frame", {
         Size = UDim2.new(1,10,0,10),
@@ -2317,25 +2320,36 @@ function Speed_Library:CreateWindow(Config)
     Custom:Create("UICorner", {CornerRadius = UDim.new(1,0)}, HueCursor)
     Custom:Create("UIStroke", {Thickness = 1.5, Color = Color3.fromRGB(0,0,0)}, HueCursor)
 
-    -- Current & New
-    local CurrentFrame = Custom:Create("Frame", {Position = UDim2.new(0,20,0,265), Size = UDim2.new(0,100,0,38), BackgroundColor3 = oldColor, ZIndex = 201}, Picker)
-    local NewFrame = Custom:Create("Frame", {Position = UDim2.new(0,130,0,265), Size = UDim2.new(0,100,0,38), BackgroundColor3 = currentColor, ZIndex = 201}, Picker)
+    -- Current & New Preview
+    local CurrentFrame = Custom:Create("Frame", {
+        Position = UDim2.new(0,20,0,265),
+        Size = UDim2.new(0,100,0,38),
+        BackgroundColor3 = oldColor,
+        ZIndex = 201
+    }, Picker)
     Custom:Create("UICorner", {CornerRadius = UDim.new(0,8)}, CurrentFrame)
+
+    local NewFrame = Custom:Create("Frame", {
+        Position = UDim2.new(0,130,0,265),
+        Size = UDim2.new(0,100,0,38),
+        BackgroundColor3 = currentColor,
+        ZIndex = 201
+    }, Picker)
     Custom:Create("UICorner", {CornerRadius = UDim.new(0,8)}, NewFrame)
 
-    -- RGB & HEX Section
+    -- RGB + HEX Section
     local RGBFrame = Custom:Create("Frame", {
         Position = UDim2.new(0, 305, 0, 55),
-        Size = UDim2.new(0, 190, 0, 190),
+        Size = UDim2.new(0, 190, 0, 200),
         BackgroundTransparency = 1,
         ZIndex = 201
     }, Picker)
 
-    local function createInput(name, yOffset, default)
+    local function CreateInput(label, y, defaultVal)
         Custom:Create("TextLabel", {
-            Position = UDim2.new(0,0,yOffset,0),
-            Size = UDim2.new(0,40,0,22),
-            Text = name,
+            Position = UDim2.new(0,0,y,0),
+            Size = UDim2.new(0,35,0,22),
+            Text = label,
             TextColor3 = Color3.fromRGB(200,200,200),
             BackgroundTransparency = 1,
             Font = Enum.Font.GothamBold,
@@ -2344,10 +2358,10 @@ function Speed_Library:CreateWindow(Config)
         }, RGBFrame)
 
         return Custom:Create("TextBox", {
-            Position = UDim2.new(0,45,yOffset,0),
-            Size = UDim2.new(0,60,0,22),
-            Text = default,
-            BackgroundColor3 = Color3.fromRGB(30,30,30),
+            Position = UDim2.new(0,40,y,0),
+            Size = UDim2.new(0,70,0,22),
+            Text = tostring(defaultVal),
+            BackgroundColor3 = Color3.fromRGB(35,35,35),
             TextColor3 = Color3.fromRGB(255,255,255),
             Font = Enum.Font.Gotham,
             TextSize = 14,
@@ -2355,15 +2369,15 @@ function Speed_Library:CreateWindow(Config)
         }, RGBFrame)
     end
 
-    local RBox = createInput("R", 0, math.floor(Default.R * 255))
-    local GBox = createInput("G", 30, math.floor(Default.G * 255))
-    local BBox = createInput("B", 60, math.floor(Default.B * 255))
+    local RBox = CreateInput("R", 0,   math.floor(Default.R * 255))
+    local GBox = CreateInput("G", 28,  math.floor(Default.G * 255))
+    local BBox = CreateInput("B", 56,  math.floor(Default.B * 255))
 
     local HEXBox = Custom:Create("TextBox", {
-        Position = UDim2.new(0,0,110,0),
-        Size = UDim2.new(1,0,0,26),
-        Text = "#" .. Default:ToHex(),
-        BackgroundColor3 = Color3.fromRGB(30,30,30),
+        Position = UDim2.new(0,0,95,0),
+        Size = UDim2.new(1,0,0,28),
+        Text = "#" .. string.upper(Default:ToHex()),
+        BackgroundColor3 = Color3.fromRGB(35,35,35),
         TextColor3 = Color3.fromRGB(255,255,255),
         Font = Enum.Font.Gotham,
         TextSize = 14,
@@ -2374,7 +2388,7 @@ function Speed_Library:CreateWindow(Config)
     -- Buttons
     local CancelBtn = Custom:Create("TextButton", {
         Position = UDim2.new(0,20,1,-55),
-        Size = UDim2.new(0,110,0,38),
+        Size = UDim2.new(0,120,0,38),
         BackgroundColor3 = Color3.fromRGB(45,45,45),
         Text = "Cancel",
         TextColor3 = Color3.fromRGB(255,255,255),
@@ -2385,8 +2399,8 @@ function Speed_Library:CreateWindow(Config)
     Custom:Create("UICorner", {CornerRadius = UDim.new(0,8)}, CancelBtn)
 
     local ApplyBtn = Custom:Create("TextButton", {
-        Position = UDim2.new(1,-130,1,-55),
-        Size = UDim2.new(0,110,0,38),
+        Position = UDim2.new(1,-140,1,-55),
+        Size = UDim2.new(0,120,0,38),
         BackgroundColor3 = Color3.fromRGB(220, 20, 20),
         Text = "Apply",
         TextColor3 = Color3.fromRGB(255,255,255),
@@ -2406,37 +2420,44 @@ function Speed_Library:CreateWindow(Config)
         RBox.Text = math.floor(currentColor.R * 255)
         GBox.Text = math.floor(currentColor.G * 255)
         BBox.Text = math.floor(currentColor.B * 255)
-        HEXBox.Text = "#" .. currentColor:ToHex():upper()
+        HEXBox.Text = "#" .. string.upper(currentColor:ToHex())
     end
 
     UpdateColor()
 
-    -- Dragging Logic (SV & Hue)
+    -- Dragging
     local uis = game:GetService("UserInputService")
     local dragSV, dragHue = false, false
 
-    SVBox.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then dragSV = true end end)
-    HueBar.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then dragHue = true end end)
+    SVBox.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 then dragSV = true end
+    end)
+
+    HueBar.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 then dragHue = true end
+    end)
 
     uis.InputChanged:Connect(function(inp)
         if dragSV then
             local x = math.clamp((inp.Position.X - SVBox.AbsolutePosition.X) / SVBox.AbsoluteSize.X, 0, 1)
             local y = math.clamp((inp.Position.Y - SVBox.AbsolutePosition.Y) / SVBox.AbsoluteSize.Y, 0, 1)
-            s, v = x, 1-y
-            SVCursor.Position = UDim2.new(x,0,y,0)
+            s = x
+            v = 1 - y
+            SVCursor.Position = UDim2.new(x, 0, y, 0)
             UpdateColor()
         end
         if dragHue then
             local y = math.clamp((inp.Position.Y - HueBar.AbsolutePosition.Y) / HueBar.AbsoluteSize.Y, 0, 1)
             h = 1 - y
-            HueCursor.Position = UDim2.new(0.5,0,y,0)
+            HueCursor.Position = UDim2.new(0.5, 0, y, 0)
             UpdateColor()
         end
     end)
 
     uis.InputEnded:Connect(function(i)
         if i.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragSV, dragHue = false, false
+            dragSV = false
+            dragHue = false
         end
     end)
 
@@ -2445,7 +2466,6 @@ function Speed_Library:CreateWindow(Config)
         Picker.Visible = not Picker.Visible
     end)
 
-    -- Apply & Cancel
     ApplyBtn.MouseButton1Click:Connect(function()
         oldColor = currentColor
         Callback(currentColor)
@@ -2464,7 +2484,6 @@ function Speed_Library:CreateWindow(Config)
     ItemCount += 1
     return {Value = currentColor}
 end
-
      
 
       ItemCount += 1
