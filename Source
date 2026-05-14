@@ -2283,6 +2283,8 @@ function Item:AddColorPicker(Config)
         ZIndex = 100
     },SpeedHubXGui)
 
+    PickerGui.ClipsDescendants = true
+
     Custom:Create("UICorner",{
         CornerRadius = UDim.new(0,14)
     },PickerGui)
@@ -2346,22 +2348,35 @@ function Item:AddColorPicker(Config)
     },Cursor)
 
     -------------------------------------------------
-    -- REAL RAINBOW HUE
+    -- FIX REAL RAINBOW HUE
     -------------------------------------------------
 
-    local HueFrame = Custom:Create("ImageLabel",{
+    local HueFrame = Custom:Create("Frame",{
         Position = UDim2.new(0,245,0,50),
         Size = UDim2.new(0,22,0,170),
-        BackgroundTransparency = 1,
+        BackgroundColor3 = Color3.fromRGB(255,0,0),
         BorderSizePixel = 0,
-        Image = "rbxassetid://3641079629",
-        ScaleType = Enum.ScaleType.Stretch,
         ZIndex = 101
     },PickerGui)
+
+    HueFrame.ClipsDescendants = true
 
     Custom:Create("UICorner",{
         CornerRadius = UDim.new(1,0)
     },HueFrame)
+
+    local HueGradient = Instance.new("UIGradient")
+    HueGradient.Rotation = 90
+    HueGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0.00, Color3.fromRGB(255,0,0)),
+        ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255,255,0)),
+        ColorSequenceKeypoint.new(0.33, Color3.fromRGB(0,255,0)),
+        ColorSequenceKeypoint.new(0.50, Color3.fromRGB(0,255,255)),
+        ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0,0,255)),
+        ColorSequenceKeypoint.new(0.83, Color3.fromRGB(255,0,255)),
+        ColorSequenceKeypoint.new(1.00, Color3.fromRGB(255,0,0)),
+    })
+    HueGradient.Parent = HueFrame
 
     local HueDetect = Custom:Create("TextButton",{
         BackgroundTransparency = 1,
@@ -2374,7 +2389,7 @@ function Item:AddColorPicker(Config)
     local HueCursor = Custom:Create("Frame",{
         AnchorPoint = Vector2.new(0.5,0.5),
         Position = UDim2.new(0.5,0,1-h,0),
-        Size = UDim2.new(1,6,0,6),
+        Size = UDim2.new(1,8,0,8),
         BackgroundColor3 = Color3.fromRGB(255,255,255),
         BorderSizePixel = 0,
         ZIndex = 103
@@ -2512,12 +2527,7 @@ function Item:AddColorPicker(Config)
             s = x
             v = 1-y
 
-            Cursor.Position = UDim2.new(
-                x,
-                0,
-                y,
-                0
-            )
+            Cursor.Position = UDim2.new(x,0,y,0)
 
             UpdateColor()
         end
