@@ -2211,7 +2211,7 @@ Item:AddColorPicker = function(Config)
     local currentColor = Default
     local oldColor = Default
 
-    -- Preview Button di List
+    -- Preview di List
     local Row = Custom:Create("Frame", {
         Size = UDim2.new(1,0,0,40),
         BackgroundTransparency = 0.94,
@@ -2320,7 +2320,7 @@ Item:AddColorPicker = function(Config)
     Custom:Create("UICorner", {CornerRadius = UDim.new(1,0)}, HueCursor)
     Custom:Create("UIStroke", {Thickness = 1.5, Color = Color3.fromRGB(0,0,0)}, HueCursor)
 
-    -- Current & New Preview
+    -- Current & New
     local CurrentFrame = Custom:Create("Frame", {
         Position = UDim2.new(0,20,0,265),
         Size = UDim2.new(0,100,0,38),
@@ -2337,13 +2337,20 @@ Item:AddColorPicker = function(Config)
     }, Picker)
     Custom:Create("UICorner", {CornerRadius = UDim.new(0,8)}, NewFrame)
 
-    -- RGB + HEX Section
+    -- RGB + HEX
     local RGBFrame = Custom:Create("Frame", {
         Position = UDim2.new(0, 305, 0, 55),
         Size = UDim2.new(0, 190, 0, 200),
         BackgroundTransparency = 1,
         ZIndex = 201
     }, Picker)
+
+    local function rgbToHex(color)
+        return string.format("#%02X%02X%02X", 
+            math.floor(color.R * 255), 
+            math.floor(color.G * 255), 
+            math.floor(color.B * 255))
+    end
 
     local function CreateInput(label, y, defaultVal)
         Custom:Create("TextLabel", {
@@ -2376,7 +2383,7 @@ Item:AddColorPicker = function(Config)
     local HEXBox = Custom:Create("TextBox", {
         Position = UDim2.new(0,0,95,0),
         Size = UDim2.new(1,0,0,28),
-        Text = "#" .. string.upper(Default:ToHex()),
+        Text = rgbToHex(Default),
         BackgroundColor3 = Color3.fromRGB(35,35,35),
         TextColor3 = Color3.fromRGB(255,255,255),
         Font = Enum.Font.Gotham,
@@ -2410,7 +2417,7 @@ Item:AddColorPicker = function(Config)
     }, Picker)
     Custom:Create("UICorner", {CornerRadius = UDim.new(0,8)}, ApplyBtn)
 
-    -- Update Function
+    -- Update
     local function UpdateColor()
         currentColor = Color3.fromHSV(h, s, v)
         SVBox.BackgroundColor3 = Color3.fromHSV(h, 1, 1)
@@ -2420,7 +2427,7 @@ Item:AddColorPicker = function(Config)
         RBox.Text = math.floor(currentColor.R * 255)
         GBox.Text = math.floor(currentColor.G * 255)
         BBox.Text = math.floor(currentColor.B * 255)
-        HEXBox.Text = "#" .. string.upper(currentColor:ToHex())
+        HEXBox.Text = rgbToHex(currentColor)
     end
 
     UpdateColor()
@@ -2430,11 +2437,15 @@ Item:AddColorPicker = function(Config)
     local dragSV, dragHue = false, false
 
     SVBox.InputBegan:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 then dragSV = true end
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            dragSV = true
+        end
     end)
 
     HueBar.InputBegan:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 then dragHue = true end
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            dragHue = true
+        end
     end)
 
     uis.InputChanged:Connect(function(inp)
@@ -2455,13 +2466,13 @@ Item:AddColorPicker = function(Config)
     end)
 
     uis.InputEnded:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 then
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
             dragSV = false
             dragHue = false
         end
     end)
 
-    -- Open Picker
+    -- Open / Apply / Cancel
     PreviewBtn.MouseButton1Click:Connect(function()
         Picker.Visible = not Picker.Visible
     end)
@@ -2483,7 +2494,7 @@ Item:AddColorPicker = function(Config)
 
     ItemCount += 1
     return {Value = currentColor}
-end
+end 
      
 
       ItemCount += 1
