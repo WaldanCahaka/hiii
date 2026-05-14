@@ -2202,7 +2202,7 @@ function Speed_Library:CreateWindow(Config)
       end
       
             function Item:AddColorPicker(Config)
-    local Title = Config[1] or Config.Title or ""
+    local Title = Config[1] or Config.Title or "Colorpicker"
     local Content = Config[2] or Config.Content or ""
     local Default = Config[3] or Config.Default or Color3.fromRGB(255,0,0)
     local Callback = Config[4] or Config.Callback or function() end
@@ -2216,13 +2216,16 @@ function Speed_Library:CreateWindow(Config)
 
     local h,s,v = Color3.toHSV(Default)
 
+    -------------------------------------------------
     -- ROW
+    -------------------------------------------------
+
     local ColorPickerRow = Custom:Create("Frame",{
         BackgroundColor3 = Color3.fromRGB(255,255,255),
         BackgroundTransparency = 0.94,
         BorderSizePixel = 0,
         LayoutOrder = ItemCount,
-        Size = UDim2.new(1,0,0,35),
+        Size = UDim2.new(1,0,0,40),
     },SectionAdd)
 
     Custom:Create("UICorner",{
@@ -2230,189 +2233,209 @@ function Speed_Library:CreateWindow(Config)
     },ColorPickerRow)
 
     local CP_Title = Custom:Create("TextLabel",{
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0,10,0,4),
+        Size = UDim2.new(1,-70,0,15),
         Font = Enum.Font.GothamBold,
         Text = Title,
         TextColor3 = Color3.fromRGB(255,255,255),
         TextSize = 13,
-        BackgroundTransparency = 1,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Position = UDim2.new(0,10,0,6),
-        Size = UDim2.new(1,-80,0,15)
+        TextXAlignment = Enum.TextXAlignment.Left
     },ColorPickerRow)
 
     local CP_Content = Custom:Create("TextLabel",{
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0,10,0,18),
+        Size = UDim2.new(1,-70,0,14),
         Font = Enum.Font.Gotham,
         Text = Content,
-        TextColor3 = Color3.fromRGB(200,200,200),
-        TextTransparency = 0.3,
+        TextColor3 = Color3.fromRGB(180,180,180),
         TextSize = 11,
-        BackgroundTransparency = 1,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Position = UDim2.new(0,10,0,18),
-        Size = UDim2.new(1,-80,0,12)
+        TextXAlignment = Enum.TextXAlignment.Left
     },ColorPickerRow)
 
     local PreviewButton = Custom:Create("TextButton",{
         Text = "",
         AutoButtonColor = false,
-        BackgroundColor3 = Default,
-        BorderSizePixel = 0,
         AnchorPoint = Vector2.new(1,0.5),
         Position = UDim2.new(1,-10,0.5,0),
-        Size = UDim2.new(0,40,0,22)
+        Size = UDim2.new(0,38,0,22),
+        BackgroundColor3 = Default,
+        BorderSizePixel = 0
     },ColorPickerRow)
 
     Custom:Create("UICorner",{
         CornerRadius = UDim.new(0,5)
     },PreviewButton)
 
-    --------------------------------------------------------
-    -- MAIN GUI
-    --------------------------------------------------------
+    -------------------------------------------------
+    -- PICKER GUI
+    -------------------------------------------------
 
     local PickerGui = Custom:Create("Frame",{
         AnchorPoint = Vector2.new(0.5,0.5),
-        BackgroundColor3 = Color3.fromRGB(18,18,18),
-        BorderSizePixel = 0,
         Position = UDim2.new(0.5,0,0.5,0),
-        Size = UDim2.new(0,320,0,250),
+        Size = UDim2.new(0,420,0,300),
+        BackgroundColor3 = Color3.fromRGB(12,12,12),
+        BorderSizePixel = 0,
         Visible = false,
         ZIndex = 100
     },SpeedHubXGui)
 
     Custom:Create("UICorner",{
-        CornerRadius = UDim.new(0,12)
+        CornerRadius = UDim.new(0,14)
     },PickerGui)
 
     Custom:Create("UIStroke",{
-        Color = Color3.fromRGB(255,0,0),
-        Thickness = 1
+        Thickness = 1,
+        Color = Color3.fromRGB(255,0,0)
     },PickerGui)
 
-    --------------------------------------------------------
+    -------------------------------------------------
     -- TITLE
-    --------------------------------------------------------
+    -------------------------------------------------
 
     local PickerTitle = Custom:Create("TextLabel",{
         BackgroundTransparency = 1,
-        Position = UDim2.new(0,15,0,10),
-        Size = UDim2.new(1,-30,0,25),
+        Position = UDim2.new(0,18,0,12),
+        Size = UDim2.new(1,0,0,20),
         Font = Enum.Font.GothamBold,
-        Text = Title ~= "" and Title or "Colorpicker",
+        Text = Title,
+        TextSize = 17,
         TextColor3 = Color3.fromRGB(255,255,255),
-        TextSize = 18,
         TextXAlignment = Enum.TextXAlignment.Left,
         ZIndex = 101
     },PickerGui)
 
-    --------------------------------------------------------
-    -- SV BOX
-    --------------------------------------------------------
+    -------------------------------------------------
+    -- SATURATION VALUE BOX
+    -------------------------------------------------
 
     local SVBox = Custom:Create("ImageButton",{
         AutoButtonColor = false,
-        Position = UDim2.new(0,15,0,45),
-        Size = UDim2.new(0,170,0,140),
+        Position = UDim2.new(0,18,0,50),
+        Size = UDim2.new(0,210,0,170),
         BackgroundColor3 = Color3.fromHSV(h,1,1),
         BorderSizePixel = 0,
         Image = "rbxassetid://4155801252",
-        ZIndex = 101
-    },PickerGui)
-
-    Custom:Create("UICorner",{
-        CornerRadius = UDim.new(0,6)
-    },SVBox)
-
-    local Cursor = Custom:Create("Frame",{
-        AnchorPoint = Vector2.new(0.5,0.5),
-        Size = UDim2.new(0,10,0,10),
-        Position = UDim2.new(s,0,1-v,0),
-        BackgroundColor3 = Color3.new(1,1,1),
-        BorderSizePixel = 0,
-        ZIndex = 102
-    },SVBox)
-
-    Custom:Create("UICorner",{
-        CornerRadius = UDim.new(1,0)
-    },Cursor)
-
-    Custom:Create("UIStroke",{
-        Thickness = 1,
-        Color = Color3.new(0,0,0)
-    },Cursor)
-
-    --------------------------------------------------------
-    -- HUE SLIDER
-    --------------------------------------------------------
-
-    local HueSlider = Custom:Create("ImageButton",{
-        AutoButtonColor = false,
-        Position = UDim2.new(0,195,0,45),
-        Size = UDim2.new(0,14,0,140),
-        BorderSizePixel = 0,
-        Image = "rbxassetid://3641079629",
         ScaleType = Enum.ScaleType.Stretch,
         ZIndex = 101
     },PickerGui)
 
     Custom:Create("UICorner",{
+        CornerRadius = UDim.new(0,8)
+    },SVBox)
+
+    local Cursor = Custom:Create("Frame",{
+        AnchorPoint = Vector2.new(0.5,0.5),
+        Size = UDim2.new(0,12,0,12),
+        Position = UDim2.new(s,0,1-v,0),
+        BackgroundColor3 = Color3.fromRGB(255,255,255),
+        BorderSizePixel = 0,
+        ZIndex = 102
+    },SVBox)
+
+    Custom:Create("UICorner",{
         CornerRadius = UDim.new(1,0)
-    },HueSlider)
+    },Cursor)
+
+    Custom:Create("UIStroke",{
+        Thickness = 1.5,
+        Color = Color3.fromRGB(0,0,0)
+    },Cursor)
+
+    -------------------------------------------------
+    -- REAL RAINBOW HUE
+    -------------------------------------------------
+
+    local HueFrame = Custom:Create("Frame",{
+        Position = UDim2.new(0,245,0,50),
+        Size = UDim2.new(0,22,0,170),
+        BackgroundTransparency = 1,
+        ZIndex = 101
+    },PickerGui)
+
+    local hueColors = {
+        ColorSequenceKeypoint.new(0.00, Color3.fromRGB(255,0,0)),
+        ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255,255,0)),
+        ColorSequenceKeypoint.new(0.33, Color3.fromRGB(0,255,0)),
+        ColorSequenceKeypoint.new(0.50, Color3.fromRGB(0,255,255)),
+        ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0,0,255)),
+        ColorSequenceKeypoint.new(0.83, Color3.fromRGB(255,0,255)),
+        ColorSequenceKeypoint.new(1.00, Color3.fromRGB(255,0,0)),
+    }
+
+    local UIGradient = Instance.new("UIGradient")
+    UIGradient.Rotation = 90
+    UIGradient.Color = ColorSequence.new(hueColors)
+    UIGradient.Parent = HueFrame
+
+    Custom:Create("UICorner",{
+        CornerRadius = UDim.new(1,0)
+    },HueFrame)
+
+    local HueDetect = Custom:Create("TextButton",{
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1,0,1,0),
+        Text = "",
+        AutoButtonColor = false,
+        ZIndex = 102
+    },HueFrame)
 
     local HueCursor = Custom:Create("Frame",{
         AnchorPoint = Vector2.new(0.5,0.5),
-        Size = UDim2.new(1,4,0,6),
         Position = UDim2.new(0.5,0,1-h,0),
-        BackgroundColor3 = Color3.new(1,1,1),
+        Size = UDim2.new(1,6,0,6),
+        BackgroundColor3 = Color3.fromRGB(255,255,255),
         BorderSizePixel = 0,
-        ZIndex = 102
-    },HueSlider)
+        ZIndex = 103
+    },HueFrame)
 
     Custom:Create("UICorner",{
         CornerRadius = UDim.new(1,0)
     },HueCursor)
 
-    --------------------------------------------------------
-    -- PREVIEW
-    --------------------------------------------------------
+    -------------------------------------------------
+    -- CURRENT / NEW
+    -------------------------------------------------
 
-    local OldPreview = Custom:Create("Frame",{
+    local CurrentPreview = Custom:Create("Frame",{
+        Position = UDim2.new(0,18,0,235),
+        Size = UDim2.new(0,90,0,28),
         BackgroundColor3 = oldColor,
         BorderSizePixel = 0,
-        Position = UDim2.new(0,15,0,195),
-        Size = UDim2.new(0,80,0,24),
         ZIndex = 101
     },PickerGui)
 
     Custom:Create("UICorner",{
-        CornerRadius = UDim.new(0,6)
-    },OldPreview)
+        CornerRadius = UDim.new(0,7)
+    },CurrentPreview)
 
     local NewPreview = Custom:Create("Frame",{
+        Position = UDim2.new(0,120,0,235),
+        Size = UDim2.new(0,90,0,28),
         BackgroundColor3 = currentColor,
         BorderSizePixel = 0,
-        Position = UDim2.new(0,105,0,195),
-        Size = UDim2.new(0,80,0,24),
         ZIndex = 101
     },PickerGui)
 
     Custom:Create("UICorner",{
-        CornerRadius = UDim.new(0,6)
+        CornerRadius = UDim.new(0,7)
     },NewPreview)
 
-    --------------------------------------------------------
+    -------------------------------------------------
     -- BUTTONS
-    --------------------------------------------------------
+    -------------------------------------------------
 
     local CancelButton = Custom:Create("TextButton",{
-        Text = "Cancel",
-        Font = Enum.Font.GothamBold,
-        TextSize = 13,
-        TextColor3 = Color3.fromRGB(255,255,255),
+        Position = UDim2.new(1,-190,1,-48),
+        Size = UDim2.new(0,80,0,32),
         BackgroundColor3 = Color3.fromRGB(35,35,35),
         BorderSizePixel = 0,
-        Position = UDim2.new(0,15,1,-45),
-        Size = UDim2.new(0,135,0,32),
+        Font = Enum.Font.GothamBold,
+        Text = "Cancel",
+        TextSize = 13,
+        TextColor3 = Color3.fromRGB(255,255,255),
         ZIndex = 101
     },PickerGui)
 
@@ -2421,14 +2444,14 @@ function Speed_Library:CreateWindow(Config)
     },CancelButton)
 
     local ApplyButton = Custom:Create("TextButton",{
-        Text = "Apply",
-        Font = Enum.Font.GothamBold,
-        TextSize = 13,
-        TextColor3 = Color3.fromRGB(255,255,255),
+        Position = UDim2.new(1,-100,1,-48),
+        Size = UDim2.new(0,80,0,32),
         BackgroundColor3 = Color3.fromRGB(70,70,70),
         BorderSizePixel = 0,
-        Position = UDim2.new(1,-150,1,-45),
-        Size = UDim2.new(0,135,0,32),
+        Font = Enum.Font.GothamBold,
+        Text = "Apply",
+        TextSize = 13,
+        TextColor3 = Color3.fromRGB(255,255,255),
         ZIndex = 101
     },PickerGui)
 
@@ -2436,9 +2459,9 @@ function Speed_Library:CreateWindow(Config)
         CornerRadius = UDim.new(0,8)
     },ApplyButton)
 
-    --------------------------------------------------------
-    -- UPDATE COLOR
-    --------------------------------------------------------
+    -------------------------------------------------
+    -- UPDATE
+    -------------------------------------------------
 
     local function UpdateColor()
         currentColor = Color3.fromHSV(h,s,v)
@@ -2453,85 +2476,73 @@ function Speed_Library:CreateWindow(Config)
 
     UpdateColor()
 
-    --------------------------------------------------------
-    -- HUE
-    --------------------------------------------------------
+    -------------------------------------------------
+    -- DRAGGING
+    -------------------------------------------------
 
-    local hueDragging = false
-
-    HueSlider.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1
-        or input.UserInputType == Enum.UserInputType.Touch then
-            hueDragging = true
-        end
-    end)
-
-    --------------------------------------------------------
-    -- SV
-    --------------------------------------------------------
-
-    local svDragging = false
+    local draggingSV = false
+    local draggingHue = false
 
     SVBox.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1
         or input.UserInputType == Enum.UserInputType.Touch then
-            svDragging = true
+            draggingSV = true
         end
     end)
 
-    --------------------------------------------------------
-    -- INPUT CHANGED
-    --------------------------------------------------------
+    HueDetect.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+            draggingHue = true
+        end
+    end)
 
     UserInputService.InputChanged:Connect(function(input)
 
-        if hueDragging and (
-            input.UserInputType == Enum.UserInputType.MouseMovement
-            or input.UserInputType == Enum.UserInputType.Touch
-        ) then
+        if draggingSV then
 
-            local pos = math.clamp(
-                (input.Position.Y - HueSlider.AbsolutePosition.Y)
-                / HueSlider.AbsoluteSize.Y,
-                0,
-                1
-            )
-
-            h = 1 - pos
-
-            HueCursor.Position = UDim2.new(
-                0.5,
-                0,
-                pos,
-                0
-            )
-
-            UpdateColor()
-        end
-
-        if svDragging and (
-            input.UserInputType == Enum.UserInputType.MouseMovement
-            or input.UserInputType == Enum.UserInputType.Touch
-        ) then
-
-            s = math.clamp(
+            local x = math.clamp(
                 (input.Position.X - SVBox.AbsolutePosition.X)
                 / SVBox.AbsoluteSize.X,
                 0,
                 1
             )
 
-            v = 1 - math.clamp(
+            local y = math.clamp(
                 (input.Position.Y - SVBox.AbsolutePosition.Y)
                 / SVBox.AbsoluteSize.Y,
                 0,
                 1
             )
 
+            s = x
+            v = 1-y
+
             Cursor.Position = UDim2.new(
-                s,
+                x,
                 0,
-                1-v,
+                y,
+                0
+            )
+
+            UpdateColor()
+        end
+
+        if draggingHue then
+
+            local y = math.clamp(
+                (input.Position.Y - HueFrame.AbsolutePosition.Y)
+                / HueFrame.AbsoluteSize.Y,
+                0,
+                1
+            )
+
+            h = 1-y
+
+            HueCursor.Position = UDim2.new(
+                0.5,
+                0,
+                y,
                 0
             )
 
@@ -2539,35 +2550,31 @@ function Speed_Library:CreateWindow(Config)
         end
     end)
 
-    --------------------------------------------------------
-    -- INPUT ENDED
-    --------------------------------------------------------
-
     UserInputService.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1
         or input.UserInputType == Enum.UserInputType.Touch then
-            hueDragging = false
-            svDragging = false
+            draggingSV = false
+            draggingHue = false
         end
     end)
 
-    --------------------------------------------------------
-    -- OPEN / CLOSE
-    --------------------------------------------------------
+    -------------------------------------------------
+    -- OPEN
+    -------------------------------------------------
 
     PreviewButton.Activated:Connect(function()
         PickerGui.Visible = not PickerGui.Visible
     end)
 
-    --------------------------------------------------------
+    -------------------------------------------------
     -- APPLY
-    --------------------------------------------------------
+    -------------------------------------------------
 
     ApplyButton.Activated:Connect(function()
 
         oldColor = currentColor
 
-        OldPreview.BackgroundColor3 = oldColor
+        CurrentPreview.BackgroundColor3 = oldColor
         PreviewButton.BackgroundColor3 = oldColor
 
         Callback(currentColor)
@@ -2575,9 +2582,9 @@ function Speed_Library:CreateWindow(Config)
         PickerGui.Visible = false
     end)
 
-    --------------------------------------------------------
+    -------------------------------------------------
     -- CANCEL
-    --------------------------------------------------------
+    -------------------------------------------------
 
     CancelButton.Activated:Connect(function()
 
@@ -2585,7 +2592,12 @@ function Speed_Library:CreateWindow(Config)
 
         h,s,v = Color3.toHSV(oldColor)
 
-        Cursor.Position = UDim2.new(s,0,1-v,0)
+        Cursor.Position = UDim2.new(
+            s,
+            0,
+            1-v,
+            0
+        )
 
         HueCursor.Position = UDim2.new(
             0.5,
@@ -2604,7 +2616,7 @@ function Speed_Library:CreateWindow(Config)
     ItemCount += 1
 
     return Funcs_ColorPicker
-end
+end 
 
      
 
